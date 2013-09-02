@@ -41,7 +41,8 @@ http://www.ros.org/wiki/groovy/Installation/Raspbian
 
 
 
-sudo apt-get install ros-groovy-image-transport ros-groovy-image-transport-plugins
+sudo apt-get install ros-groovy-image-transport ros-groovy-image-transport-plugins ros-groovy-image-transport-plugins ros-groovy-camera-info-manager
+
 
 
 
@@ -81,11 +82,17 @@ rosrun raspicam raspicam_node
 
 Topic:
 
-/image/compressed :
+/camera/compressed :
 
 	publish sensor_msgs/CompressedImage
 
 	jpeg from the camera module
+
+camera/camera_info :
+
+	publish  sensor_msgs/CameraInfo
+
+	camera info for each frame
 
 
 
@@ -101,6 +108,11 @@ Services :
 
 	stop video capture and publication (buggy at the moment)
 
+/set_camera_info :
+
+	set camera information (used for calibration)
+
+	saved in package://raspicam/calibrations/camera.yaml
 
 
 Parameters :
@@ -120,6 +132,10 @@ framerate :
 quality :
 
 	quality of the captured images (0 < quality <= 100)
+
+tf_prefix :
+
+	prefix for frame_id
 
 
 

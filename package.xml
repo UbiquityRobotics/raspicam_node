@@ -46,6 +46,7 @@
   <run_depend>compressed_image_transport</run_depend>
   <run_depend>roscpp</run_depend>
   <run_depend>std_msgs</run_depend>
+  <run_depend>camera_info_manager</run_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->
