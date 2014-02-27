@@ -142,13 +142,13 @@ tf_prefix :
 For parameter changes to be applied, the capture need to be restarted using /stop_capture and /start_capture services.
 
 
-Example:
+Example :
 
-rosrun raspicam raspicam_node
+	rosrun raspicam raspicam_node
 
-rosservice call /camera/start_capture
+	rosservice call /camera/start_capture
 
-rosrun image_view image_view image:=/camera/image _image_transport:=compressed
+	rosrun image_view image_view image:=/camera/image _image_transport:=compressed
 
 
 TO DO List :
