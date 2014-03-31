@@ -3,6 +3,9 @@ raspicam_node
 
 Groovy ROS node for camera module of Raspberry Pi
 
+Now works at 90 fps thanks to the new firmware provided by the Raspberry Pi foundation
+
+
 
 Requirements
 
@@ -127,7 +130,7 @@ height :
 
 framerate :
 
-	framerate of the captured images (0 < framerate <= 30)
+	framerate of the captured images (0 < framerate <= 90)
 
 quality :
 
@@ -150,14 +153,20 @@ Example :
 
 	rosrun image_view image_view image:=/camera/image _image_transport:=compressed
 
+If you want to try 90 fps mode, you'll have to decrease the quality factor.
+
+To try the 90 fps mode :
+
+	rosrun raspicam raspicam_node _framerate:=90 _quality:=10
+
+	rosservice call /camera/start_capture
+
+	rosrun image_view image_view image:=/camera/image _image_transport:=compressed
+
 
 TO DO List :
 
-	- a lot of cleaning and check memory leaks
-
 	- remove warnings from raspicamcontrol
-
-	- fully working /stop_capture
 
 	- reenable vc_gencmd
 

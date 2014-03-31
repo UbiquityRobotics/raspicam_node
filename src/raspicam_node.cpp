@@ -191,7 +191,7 @@ static void get_status(RASPIVID_STATE *state)
    }
 
    if (ros::param::get("~framerate", temp )){
-	if(temp > 0 && temp <= 30)
+	if(temp > 0 && temp <= 90)
 		state->framerate = temp;
 	else	state->framerate = 30;
    }else{
@@ -272,10 +272,7 @@ static void encoder_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buf
 		pData->id = 0;		
 	}
    }
-   else
-   {
-      vcos_log_error("Received a encoder buffer callback with no state");
-   }
+
    // release buffer back to the pool
    mmal_buffer_header_release(buffer);
 
@@ -291,10 +288,7 @@ static void encoder_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buf
 
       if (!new_buffer || status != MMAL_SUCCESS)
          vcos_log_error("Unable to return a buffer to the encoder port");
-   }else{
-
-	ROS_INFO("oups");
-  }
+   }
 }
 
 
@@ -335,23 +329,9 @@ static MMAL_COMPONENT_T *create_camera_component(RASPIVID_STATE *state)
 
    //  set up the camera configuration
    {
-      /*MMAL_PARAMETER_CAMERA_CONFIG_T cam_config =
-      {
-         { MMAL_PARAMETER_CAMERA_CONFIG, sizeof(cam_config) },
-         .max_stills_w = state->width,
-         .max_stills_h = state->height,
-         .stills_yuv422 = 0,
-         .one_shot_stills = 0,
-         .max_preview_video_w = state->width,
-         .max_preview_video_h = state->height,
-         .num_preview_video_frames = 3,
-         .stills_capture_circular_buffer_height = 0,
-         .fast_preview_resume = 0,
-         .use_stc_timestamp = MMAL_PARAM_TIMESTAMP_MODE_RESET_STC
-      };*/
- 	  MMAL_PARAMETER_CAMERA_CONFIG_T cam_config;
-	  cam_config.hdr.id = MMAL_PARAMETER_CAMERA_CONFIG;
-	  cam_config.hdr.size = sizeof(cam_config);
+      MMAL_PARAMETER_CAMERA_CONFIG_T cam_config;
+      cam_config.hdr.id = MMAL_PARAMETER_CAMERA_CONFIG;
+      cam_config.hdr.size = sizeof(cam_config);
       cam_config.max_stills_w = state->width;
       cam_config.max_stills_h = state->height;
       cam_config.stills_yuv422 = 0;
@@ -691,10 +671,8 @@ int init_cam(RASPIVID_STATE *state)
       callback_data_enc->abort = 0;
       callback_data_enc->id = 0;
       callback_data_enc->frame = 0;
-      //ROS_INFO("0 - %x, %x, %d, %d", callback_data_enc->buffer[0], callback_data_enc->buffer[1], callback_data_enc->frame,  callback_data_enc->id);
-      encoder_output_port->userdata = (struct MMAL_PORT_USERDATA_T *)callback_data_enc;
+      encoder_output_port->userdata = (struct MMAL_PORT_USERDATA_T *) callback_data_enc;
       PORT_USERDATA *pData = (PORT_USERDATA *)encoder_output_port->userdata;
-     // ROS_INFO("I1 - %x, %x, %x, %d, %d", pData, pData->buffer[0], pData->buffer[1], pData->frame,  pData->id);
       // Enable the encoder output port and tell it its callback function
       status = mmal_port_enable(encoder_output_port, encoder_buffer_callback);
       if (status != MMAL_SUCCESS)
@@ -702,7 +680,6 @@ int init_cam(RASPIVID_STATE *state)
          ROS_INFO("Failed to setup encoder output");
          return 1;
       }
-      //ROS_INFO("I2 - %x, %x, %x, %d, %d", pData, pData->buffer[0], pData->buffer[1], pData->frame,  pData->id);
       state->isInit = 1;
    }
    return 0;
@@ -714,14 +691,11 @@ int start_capture(RASPIVID_STATE *state){
 	MMAL_PORT_T *camera_video_port   = state->camera_component->output[MMAL_CAMERA_VIDEO_PORT];
 	MMAL_PORT_T *encoder_output_port = state->encoder_component->output[0];
 	ROS_INFO("Starting video capture (%d, %d, %d, %d)\n", state->width, state->height, state->quality, state->framerate);
-	PORT_USERDATA *pData = (PORT_USERDATA *)encoder_output_port->userdata;
-	//ROS_INFO("SC - %x, %x, %x, %d, %d", pData, pData->buffer[0], pData->buffer[1], pData->frame,  pData->id);
 
       	if (mmal_port_parameter_set_boolean(camera_video_port, MMAL_PARAMETER_CAPTURE, 1) != MMAL_SUCCESS)
       	{
 	 	return 1;
       	}
-//ROS_INFO("SC2 - %x, %x, %x, %d, %d", pData, pData->buffer[0], pData->buffer[1], pData->frame,  pData->id);
       	// Send all the buffers to the video port
       	{
 	 	int num = mmal_queue_length(state->encoder_pool->queue);
@@ -738,7 +712,6 @@ int start_capture(RASPIVID_STATE *state){
 
 	 	}
       	}
-//ROS_INFO("SC3 - %x, %x, %x, %d, %d", pData, pData->buffer[0], pData->buffer[1], pData->frame,  pData->id);
 	ROS_INFO("Video capture started\n");
 	return 0;
 
@@ -749,61 +722,53 @@ int start_capture(RASPIVID_STATE *state){
 int close_cam(RASPIVID_STATE *state){
 	if(state->isInit){
 		state -> isInit = 0;
-		MMAL_STATUS_T status;
-		ROS_INFO( "Finished capture\n");
-      		//mmal_status_to_int(status);
-		vcos_log_error("error");
-vcos_log_trace("trace");
-vcos_log_info("info");
-vcos_log_warn("warn");
-		ROS_INFO( "1");
-      		// Disable all our ports that are not handled by connections
-      		check_disable_port(state->encoder_component->output[0]);
-		ROS_INFO( "2");
-      		check_disable_port(state->camera_component->output[MMAL_CAMERA_CAPTURE_PORT]);
-		ROS_INFO( "3");
-      		/* Disable components */
-      		if (state->encoder_component)
-         		mmal_component_disable(state->encoder_component);
-		ROS_INFO( "4");
-      		if (state->camera_component)
-         		mmal_component_disable(state->camera_component);
-		ROS_INFO( "5");
-      		destroy_encoder_component(state);
-		ROS_INFO( "6");
-      		destroy_camera_component(state);
-	
-      		ROS_INFO("Close down completed, all components disconnected, disabled and destroyed\n\n");
-      		/*if (status != 0)
-          		raspicamcontrol_check_configuration(128);*/
-      		return 0;
-  	}else return 1;
+		MMAL_COMPONENT_T *camera = state->camera_component;
+		MMAL_COMPONENT_T *encoder = state->encoder_component;
+		MMAL_PORT_T *encoder_output_port = state->encoder_component->output[0];
+		MMAL_PORT_T *camera_still_port = camera->output[MMAL_CAMERA_CAPTURE_PORT];
+		PORT_USERDATA * pData = (PORT_USERDATA *)encoder_output_port->userdata;
+
+		if (camera_still_port && camera_still_port->is_enabled)
+			mmal_port_disable(camera_still_port);
+		  
+		if (encoder->output[0] && encoder->output[0]->is_enabled)
+			mmal_port_disable(encoder->output[0]);
+
+		mmal_connection_destroy(state->encoder_connection);
+
+		// Disable components
+		if (encoder)
+			mmal_component_disable(encoder);
+		 
+		if (camera)
+			mmal_component_disable(camera);
+			 
+		//Destroy encoder component
+		// Get rid of any port buffers first
+		if (state->encoder_pool)
+		{
+			mmal_port_pool_destroy(encoder->output[0], state->encoder_pool);
+		}
+
+
+		free(pData->buffer[0]);
+		free(pData->buffer[1]);
+
+		if (encoder)
+		{
+			mmal_component_destroy(encoder);
+			encoder = NULL;
+		}
+		//destroy camera component
+		if (camera)
+		{
+			mmal_component_destroy(camera);
+			camera = NULL;
+		}
+		ROS_INFO("Video capture stopped\n");
+		return 0;
+	}else return 1;
 }
-
-
-/*bool set_cam_info (sensor_msgs::CameraInfo cam_info, const char *filename){
-	FILE *pf = fopen(filename,"wb");
-	if(pf==NULL) return false;
-	c_info = cam_info;
-	fwrite(&cam_info,1,sizeof(sensor_msgs::CameraInfo),pf);
-	fclose(pf);
-}
-
-bool get_cam_info (const char *filename){
-	FILE *pf = fopen(filename,"r+b");
-	size_t nbRead = -1;
-	if(pf==NULL) return false;
-	rewind(pf);
-	nbRead = fread(&c_info,1,sizeof(sensor_msgs::CameraInfo),pf);
-	if(nbRead != sizeof(sensor_msgs::CameraInfo)){
-		rewind(pf);
-		nbRead = fwrite(&c_info,1,sizeof(sensor_msgs::CameraInfo),pf);
-		return false;
-	}
-	fclose(pf);
-}*/
-
-
 
 bool serv_start_cap(	std_srvs::Empty::Request  &req,
 			std_srvs::Empty::Response &res )
@@ -820,14 +785,6 @@ bool serv_stop_cap(	std_srvs::Empty::Request  &req,
   return true;
 }
 
-/*bool set_camera_info_srv(	sensor_msgs::SetCameraInfo::Request  &req,
-			sensor_msgs::SetCameraInfo::Response &res )
-{
-  
-  res.success = set_cam_info (req.camera_info, "camera_info");;
-  res.status_message = "OK";
-  return true;
-}*/
 
 
 int main(int argc, char **argv){
@@ -844,12 +801,10 @@ int main(int argc, char **argv){
    	c_info = c_info_man.getCameraInfo ();
 	ROS_INFO("Camera successfully calibrated");
    }
-   //get_cam_info ("camera_info");
    image_pub = n.advertise<sensor_msgs::CompressedImage>("camera/image/compressed", 1);
    camera_info_pub = n.advertise<sensor_msgs::CameraInfo>("camera/camera_info", 1);
    ros::ServiceServer start_cam = n.advertiseService("camera/start_capture", serv_start_cap);
    ros::ServiceServer stop_cam = n.advertiseService("camera/stop_capture", serv_stop_cap);
-   //ros::ServiceServer set_camera_info = n.advertiseService("camera/set_camera_info", set_camera_info_srv);
    ros::spin();
    close_cam(&state_srv);
    return 0;
