@@ -790,10 +790,13 @@ bool serv_stop_cap(	std_srvs::Empty::Request  &req,
 int main(int argc, char **argv){
    ros::init(argc, argv, "raspicam_node");
    ros::NodeHandle n;
-   camera_info_manager::CameraInfoManager c_info_man (n, "camera", "package://raspicam/calibrations/camera.yaml");
+   std::string camera_info_uri;
+   n.param("camera_info_uri", camera_info_uri, std::string("package://raspicam/calibrations/camera.yaml"));
+   ROS_INFO("Loading CameraInfo from %s", camera_info_uri.c_str());
+   camera_info_manager::CameraInfoManager c_info_man (n, "camera", camera_info_uri);
    get_status(&state_srv);
 
-   if(!c_info_man.loadCameraInfo ("package://raspicam/calibrations/camera.yaml")){
+   if(!c_info_man.loadCameraInfo (camera_info_uri)){
 	ROS_INFO("Calibration file missing. Camera not calibrated");
    }
    else
