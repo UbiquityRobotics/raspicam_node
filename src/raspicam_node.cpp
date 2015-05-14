@@ -128,6 +128,7 @@ ros::Publisher image_pub;
 ros::Publisher camera_info_pub;
 sensor_msgs::CameraInfo c_info;
 std::string tf_prefix;
+std::string camera_frame_id;
 
 /** Struct used to pass information in encoder port userdata to callback
  */
@@ -206,6 +207,13 @@ static void get_status(RASPIVID_STATE *state)
 	ros::param::set("~tf_prefix", "");
    }
 
+   if (ros::param::get("~camera_frame_id",  str)){
+	camera_frame_id = str;
+   }else{
+	camera_frame_id = "";
+	ros::param::set("~camera_frame_id", "");
+   }
+
    state->isInit = 0;
 
    // Setup preview window defaults
@@ -258,8 +266,9 @@ static void encoder_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buf
 	if (complete){
 		sensor_msgs::CompressedImage msg;
 		msg.header.seq = pData->frame;
-		msg.header.frame_id = tf_prefix;
-		msg.header.frame_id.append("/camera");
+		//msg.header.frame_id = tf_prefix;
+		//msg.header.frame_id.append("/camera");
+		msg.header.frame_id = camera_frame_id;
 		msg.header.stamp = ros::Time::now();
 		msg.format = "jpg";
 		msg.data.insert( msg.data.end(), pData->buffer[pData->frame & 1], &(pData->buffer[pData->frame & 1][pData->id]) );
