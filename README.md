@@ -1,8 +1,9 @@
 # raspicam_node
 
-Groovy ROS node for camera module of Raspberry Pi
+ROS node for camera module of Raspberry Pi
 
-Now works at 90 fps thanks to the new firmware provided by the Raspberry Pi foundation
+Now works at 90 fps thanks to the new firmware provided by
+the Raspberry Pi foundation
 
 ## Node Information
 
@@ -64,6 +65,71 @@ To try the 90 fps mode :
 
 ## Build Intructions
 
+1. Log into a Raspberry Pi 2 with
+   [Ubuntu and ROS installed](Doc_Downloading_and_Installing_the_Ubiquity_Ubuntu
+_ROS_Kernel_Image.md).
+
+2. Make a catkin workspace:
+
+        cd ~
+        mkdir -p catkin_ws/src
+        source /opt/ros/indigo/setup.bash
+        export ROS_WORKSPACE=~/catkin_ws
+
+3. Make clone of the Raspberry Pi user land programs source code:
+
+        cd ~
+        git clone https://github.com/raspberrypi/userland.git
+
+4. Build the Raspberry Pi userland programs:
+
+        cd ~/userland
+        ./buildme
+
+5. Install this respository:
+
+        cd ~/catkin_ws/src
+        git clone https://github.com/UbiquityRobotics/raspicam_node.git
+
+6. Build everything:
+
+        cd ~/catkin_ws
+        catkin_make)
+
+7. Make `/dev/vchiq` accessible to regular users (there is probably
+   a more secure way to do this, but for now...)
+
+        sudo chmod 666 /dev/vchiq
+
+
+8. Make sure that catkin workspace is visible to ROS:
+
+        source devel/setup.bash
+
+9. Run the raspicam node:
+
+        roscore &
+        rosrun raspicam raspicam_node &
+        rosservice call /raspicam_node/camera/start_capture 
+
+10. View the image on a laptop/desktop:
+
+	rostopic list
+        rqt_image_view image:=/raspicam_node/camera/image/compressed
+
+
+## TO DO List :
+
+* remove warnings from raspicamcontrol
+* reenable vc_gencmd
+
+## Old text that will eventually be deleted
+
+5. Install additional groovy packages:
+
+        sudo apt-get install ros-groovy-image-transport ros-groovy-image-transport-plugins
+        sudo apt-get ros-groovy-image-transport-plugins ros-groovy-camera-info-manager
+
 1. Get Raspbian Wheezy from
    [http://elinux.org/RPi_Easy_SD_Card_Setup](http://elinux.org/RPi_Easy_SD_Card_Setup).
 
@@ -78,43 +144,3 @@ To try the 90 fps mode :
 4. Install ROS
    [Groovy](http://www.ros.org/wiki/groovy/Installation/Raspbian].
 
-5. Install additional groovy packages:
-
-        sudo apt-get install ros-groovy-image-transport ros-groovy-image-transport-plugins
-        sudo apt-get ros-groovy-image-transport-plugins ros-groovy-camera-info-manager
-
-6. Make clone of the Raspberry Pi user land programs source code:
-
-        git clone https://github.com/raspberrypi/userland.git ~/userland
-
-7. Make a catkin workspace:
-
-        cd ~
-	mkdir -p catkin_ws/src
-        source /opt/ros/groovy/setup.bash
-        export ROS_WORKSPACE=~/catkin_ws
-
-8. Install raspicam node:
-
-        cd ~/catkin_ws/src
-        #git clone https://github.com/fpasteau/raspicam_node.git raspicam
-        git clone https://github.com/UbiquityRobotics/raspicam_node.git raspicam
-
-9. Build catkin workspace:
-
-        cd ~/catkin_ws
-        catkin_make
-
-10. Make sure that catkin workspace is visible to ROS:
-
-        source devel/setup.bash
-
-11. Run the raspicam node:
-
-        roscore &
-        rosrun raspicam raspicam_node
-
-## TO DO List :
-
-* remove warnings from raspicamcontrol
-* reenable vc_gencmd
