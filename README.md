@@ -84,7 +84,7 @@ _ROS_Kernel_Image.md).
 4. Clone build and install Raspberry Pi firmware updater:
 
         cd ~
-	sudo curl -L --output /usr/bin/rpi-update https://raw.githubusercontent.com/Hexxeh/rpi-update/master/rpi-update && sudo chmod +x /usr/bin/rpi-update
+        sudo curl -L --output /usr/bin/rpi-update https://raw.githubusercontent.com/Hexxeh/rpi-update/master/rpi-update && sudo chmod +x /usr/bin/rpi-update
         sudo rpi-update
 
 5. Build the Raspberry Pi userland programs:
@@ -124,7 +124,7 @@ _ROS_Kernel_Image.md).
 
 12. View the image on a laptop/desktop:
 
-	rostopic list
+        rostopic list
         rqt_image_view image:=/raspicam/camera/image/compressed
 
 
