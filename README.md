@@ -81,41 +81,51 @@ _ROS_Kernel_Image.md).
         cd ~
         git clone https://github.com/raspberrypi/userland.git
 
-4. Build the Raspberry Pi userland programs:
+4. Clone build and install Raspberry Pi firmware updater:
+
+        cd ~
+	sudo curl -L --output /usr/bin/rpi-update https://raw.githubusercontent.com/Hexxeh/rpi-update/master/rpi-update && sudo chmod +x /usr/bin/rpi-update
+        sudo rpi-update
+
+5. Build the Raspberry Pi userland programs:
 
         cd ~/userland
         ./buildme
 
-5. Install this respository:
+6. Install this respository:
 
         cd ~/catkin_ws/src
         git clone https://github.com/UbiquityRobotics/raspicam_node.git
 
-6. Build everything:
+7. Make sure the image `compress-image-transport` library is present:
+
+        sudo apt-get ros-indigo-compress-image-transport
+
+8. Build everything:
 
         cd ~/catkin_ws
         catkin_make)
 
-7. Make `/dev/vchiq` accessible to regular users (there is probably
+9. Make `/dev/vchiq` accessible to regular users (there is probably
    a more secure way to do this, but for now...)
 
         sudo chmod 666 /dev/vchiq
 
 
-8. Make sure that catkin workspace is visible to ROS:
+10. Make sure that catkin workspace is visible to ROS:
 
         source devel/setup.bash
 
-9. Run the raspicam node:
+11. Run the raspicam node:
 
         roscore &
         rosrun raspicam raspicam_node &
         rosservice call /raspicam_node/camera/start_capture 
 
-10. View the image on a laptop/desktop:
+12. View the image on a laptop/desktop:
 
 	rostopic list
-        rqt_image_view image:=/raspicam_node/camera/image/compressed
+        rqt_image_view image:=/raspicam/camera/image/compressed
 
 
 ## TO DO List :
