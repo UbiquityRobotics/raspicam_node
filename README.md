@@ -74,83 +74,61 @@ _ROS_Kernel_Image.md).
         cd ~
         mkdir -p catkin_ws/src
         source /opt/ros/indigo/setup.bash
-        export ROS_WORKSPACE=~/catkin_ws
+        #export ROS_WORKSPACE=~/catkin_ws
 
-3. Make clone of the Raspberry Pi user land programs source code:
-
-        cd ~
-        git clone https://github.com/raspberrypi/userland.git
-
-4. Clone build and install Raspberry Pi firmware updater:
+3. Clone, build, install, and run Raspberry Pi firmware updater:
 
         cd ~
+	sudo apt-get install -y curl
         sudo curl -L --output /usr/bin/rpi-update https://raw.githubusercontent.com/Hexxeh/rpi-update/master/rpi-update && sudo chmod +x /usr/bin/rpi-update
         sudo rpi-update
 
-5. Build the Raspberry Pi userland programs:
+4. Make clone, build and install  the Raspberry Pi user land programs
+   from source code:
 
+        cd ~
+        git clone https://github.com/raspberrypi/userland.git
         cd ~/userland
         ./buildme
 
-6. Install this respository:
+5. Install a couple of Ubiquity Robotics repositories:
 
         cd ~/catkin_ws/src
         git clone https://github.com/UbiquityRobotics/raspicam_node.git
+        # The repository has some useful launch files:
+        git clone https://github.com/UbiquityRobotics/ubiquit_launch.git
 
-7. Make sure the image `compress-image-transport` library is present:
+6. Make sure the image `compressed-image-transport` library is present:
 
-        sudo apt-get ros-indigo-compress-image-transport
+        sudo apt-get ros-indigo-compressed-image-transport
 
-8. Build everything:
+7. Build everything:
 
         cd ~/catkin_ws
-        catkin_make)
+        catkin_make
 
-9. Make `/dev/vchiq` accessible to regular users (there is probably
+8. Make `/dev/vchiq` accessible to regular users (there is probably
    a more secure way to do this, but for now...)
 
         sudo chmod 666 /dev/vchiq
 
-
-10. Make sure that catkin workspace is visible to ROS:
+11. Make sure that catkin workspace is visible to ROS:
 
         source devel/setup.bash
 
-11. Run the raspicam node:
+12. Run the raspicam node:
 
         roscore &
         rosrun raspicam raspicam_node &
         rosservice call /raspicam_node/camera/start_capture 
 
-12. View the image on a laptop/desktop:
+13. View the image on a laptop/desktop:
 
         rostopic list
-        rqt_image_view image:=/raspicam/camera/image/compressed
-
+        rqt_image_view image:=/raspicam_node/camera/image/compressed
 
 ## TO DO List :
 
 * remove warnings from raspicamcontrol
 * reenable vc_gencmd
-
-## Old text that will eventually be deleted
-
-5. Install additional groovy packages:
-
-        sudo apt-get install ros-groovy-image-transport ros-groovy-image-transport-plugins
-        sudo apt-get ros-groovy-image-transport-plugins ros-groovy-camera-info-manager
-
-1. Get Raspbian Wheezy from
-   [http://elinux.org/RPi_Easy_SD_Card_Setup](http://elinux.org/RPi_Easy_SD_Card_Setup).
-
-2. Enable Camera and expand FS by reading
-   [http://www.raspberrypi.org/archives/3890](http://www.raspberrypi.org/archives/3890)
-
-3. Upgrade the system to the latest:
-
-        sudo apt-get update
-        sudo apt-get upgrade
-
-4. Install ROS
-   [Groovy](http://www.ros.org/wiki/groovy/Installation/Raspbian].
 
