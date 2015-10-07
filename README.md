@@ -99,12 +99,12 @@ _ROS_Kernel_Image.md).
 
 7. Make sure the image `compress-image-transport` library is present:
 
-        sudo apt-get ros-indigo-compress-image-transport
+        sudo apt-get install ros-indigo-compressed-image-transport
 
 8. Build everything:
 
         cd ~/catkin_ws
-        catkin_make)
+        catkin_make
 
 9. Make `/dev/vchiq` accessible to regular users (there is probably
    a more secure way to do this, but for now...)
