@@ -107,26 +107,38 @@ _ROS_Kernel_Image.md).
         cd ~/catkin_ws
         catkin_make
 
-8. Make `/dev/vchiq` accessible to regular users (there is probably
-   a more secure way to do this, but for now...)
+8. Make `/dev/vchiq` is accessible to users in video group:
 
-        sudo chmod 666 /dev/vchiq
+        sudo -s
+        echo 'SUBSYSTEM=="vchiq",GROUP="video",MODE="0660"' > /etc/udev/rules.d/10-vchiq-permissions.rules
+        usermod -a -G video `whoami`
+        exit
 
-11. Make sure that catkin workspace is visible to ROS:
+9. Make sure that catkin workspace is visible to ROS:
 
         source devel/setup.bash
 
-12. Run the raspicam node:
+10. Run the raspicam node:
 
         roscore &
         rosrun raspicam raspicam_node &
         rosservice call /raspicam_node/camera/start_capture 
 
-13. View the image on a laptop/desktop:
+11. View the image on a laptop/desktop:
 
         rostopic list
         rqt_image_view image:=/raspicam_node/camera/image/compressed
 
+12. To use the launch files:
+
+        export PATH=$PATH:~/catkin_ws/src/ubiquity_launches/bin
+        # On Robot, do either:
+        loki_raspicam   # ~30 FPS
+        # or do:
+        loki_raspicam90  # 90 FPS
+        # On laptop/desktop:
+        loki_view_raspicam
+        
 ## TO DO List :
 
 * remove warnings from raspicamcontrol
