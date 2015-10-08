@@ -79,7 +79,7 @@ _ROS_Kernel_Image.md).
 3. Clone, build, install, and run Raspberry Pi firmware updater:
 
         cd ~
-	sudo apt-get install -y curl
+        sudo apt-get install -y curl
         sudo curl -L --output /usr/bin/rpi-update https://raw.githubusercontent.com/Hexxeh/rpi-update/master/rpi-update && sudo chmod +x /usr/bin/rpi-update
         sudo rpi-update
 
