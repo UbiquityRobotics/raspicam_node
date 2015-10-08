@@ -82,6 +82,7 @@ _ROS_Kernel_Image.md).
         sudo apt-get install -y curl
         sudo curl -L --output /usr/bin/rpi-update https://raw.githubusercontent.com/Hexxeh/rpi-update/master/rpi-update && sudo chmod +x /usr/bin/rpi-update
         sudo rpi-update
+	sudo reboot
 
 4. Make clone, build and install  the Raspberry Pi user land programs
    from source code:
@@ -96,11 +97,11 @@ _ROS_Kernel_Image.md).
         cd ~/catkin_ws/src
         git clone https://github.com/UbiquityRobotics/raspicam_node.git
         # The repository has some useful launch files:
-        git clone https://github.com/UbiquityRobotics/ubiquit_launch.git
+        git clone https://github.com/UbiquityRobotics/ubiquity_launches.git
 
 6. Make sure the image `compressed-image-transport` library is present:
 
-        sudo apt-get install ros-indigo-compressed-image-transport
+        sudo apt-get install -y ros-indigo-compressed-image-transport
 
 7. Build everything:
 
@@ -112,7 +113,7 @@ _ROS_Kernel_Image.md).
         sudo -s
         echo 'SUBSYSTEM=="vchiq",GROUP="video",MODE="0660"' > /etc/udev/rules.d/10-vchiq-permissions.rules
         usermod -a -G video `whoami`
-        exit
+	reboot
 
 9. Make sure that catkin workspace is visible to ROS:
 
