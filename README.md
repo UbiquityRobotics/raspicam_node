@@ -100,7 +100,7 @@ _ROS_Kernel_Image.md).
 
 6. Make sure the image `compressed-image-transport` library is present:
 
-        sudo apt-get ros-indigo-compressed-image-transport
+        sudo apt-get install ros-indigo-compressed-image-transport
 
 7. Build everything:
 
