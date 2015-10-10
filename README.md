@@ -125,6 +125,18 @@ _ROS_Kernel_Image.md).
         rosrun raspicam raspicam_node &
         rosservice call /raspicam_node/camera/start_capture 
 
+    If you get an error that looks like:
+
+
+        mmal: mmal_component_create_core: could not find component 'vc.ril.camera'
+        mmal: Failed to create camera component
+        [INFO] [1444257925.655477127]: init_cam: Failed to create camera component
+        Segmentation fault
+
+    The two things to check are to 1) make sure the Raspberry Pi
+    firmware as been updated and 2) make sure the cable is properly
+    seated.  Both these issues generate the same error message.
+
 11. View the image on a laptop/desktop:
 
         rostopic list
