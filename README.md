@@ -69,28 +69,25 @@ To try the 90 fps mode :
    [Ubuntu and ROS installed](Doc_Downloading_and_Installing_the_Ubiquity_Ubuntu
 _ROS_Kernel_Image.md).
 
-2. Make a catkin workspace:
-
-        cd ~
-        mkdir -p catkin_ws/src
-        source /opt/ros/indigo/setup.bash
-        #export ROS_WORKSPACE=~/catkin_ws
-
-3. Clone, build, install, and run Raspberry Pi firmware updater:
-
-        cd ~
-        sudo apt-get install -y curl
-        sudo curl -L --output /usr/bin/rpi-update https://raw.githubusercontent.com/Hexxeh/rpi-update/master/rpi-update && sudo chmod +x /usr/bin/rpi-update
-        sudo rpi-update
-	sudo reboot
-
-4. Make clone, build and install  the Raspberry Pi user land programs
+2. Make clone, build and install the Raspberry Pi user land programs
    from source code:
 
         cd ~
         git clone https://github.com/raspberrypi/userland.git
         cd ~/userland
         ./buildme
+
+3. Make sure the image `compressed-image-transport` library is present:
+
+        sudo apt-get install -y ros-indigo-compressed-image-transport
+
+4. Make a catkin workspace:
+
+        # The workspace may already have been constructed; if so skip this step:
+        cd ~
+        mkdir -p catkin_ws/src
+        source /opt/ros/indigo/setup.bash
+        #export ROS_WORKSPACE=~/catkin_ws
 
 5. Install a couple of Ubiquity Robotics repositories:
 
@@ -99,25 +96,30 @@ _ROS_Kernel_Image.md).
         # The repository has some useful launch files:
         git clone https://github.com/UbiquityRobotics/ubiquity_launches.git
 
-6. Make sure the image `compressed-image-transport` library is present:
-
-        sudo apt-get install -y ros-indigo-compressed-image-transport
-
-7. Build everything:
+6. Build everything:
 
         cd ~/catkin_ws
         catkin_make
 
-8. Make `/dev/vchiq` is accessible to users in video group:
+7. Make `/dev/vchiq` is accessible to users in video group:
 
         sudo -s
         echo 'SUBSYSTEM=="vchiq",GROUP="video",MODE="0660"' > /etc/udev/rules.d/10-vchiq-permissions.rules
         usermod -a -G video `whoami`
-	reboot
+        reboot
 
-9. Make sure that catkin workspace is visible to ROS:
+8. Make sure that catkin workspace is visible to ROS:
 
-        source devel/setup.bash
+        # This may already be in your `!~/.bashrc` file:
+        source ~/catkin_src/devel/setup.bash
+
+9. Clone, build, install, and run Raspberry Pi firmware updater:
+
+        cd ~
+        sudo apt-get install -y curl
+        sudo curl -L --output /usr/bin/rpi-update https://raw.githubusercontent.com/Hexxeh/rpi-update/master/rpi-update && sudo chmod +x /usr/bin/rpi-update
+        sudo rpi-update cad980c560b6c240fdaf6cb4b7703921b18114e3
+        sudo reboot
 
 10. Run the raspicam node:
 
@@ -152,6 +154,76 @@ _ROS_Kernel_Image.md).
         # On laptop/desktop:
         loki_view_raspicam
         
+## Notes:
+
+Frankly, it took a small miricle to get the raspicam node to
+work under Ubuntu.  The reason why is described below.
+
+The raspicam node uses the Raspbery Pi video camera interface
+API (Application Programming Interface) to access the image data.
+The Raspberry Pi camera is actually connected to the GPU (Graphics
+Processing Unit) where specalized graphics processing units
+can manipulate the image before it is forwarded on to the
+main ARM7 cores.  The Raspberry Pi GPU is closed source
+proprietary code is only shipped as a binary blob that is
+loaded into the GPU at processor boot up time.
+
+In general, the Raspberry Pi camera is fully supported by
+the Raspberry Pi foundation.  However, in order to support
+their older products (the model A, model B, and model B+),
+they have had to develop (with user help) their own Linux
+distribution called Raspian.  The Raspberry Pi camera is
+fully supported by the Raspian Linux distribution.
+ROS is only supported by the Ubuntu Linux distribution.
+Since the `raspicam_node` is for ROS, it must be run on
+a Ubuntu Linux distribution.  While the Ubuntu Linux distribution
+is not fully supported by the Raspberry Pi Foundation,
+the foundation is actually OK with the Ubuntu Linux distribution
+and does provide some limited support.
+
+Both the Ubuntu and Raspian distributions use the same
+packaging system called Debian Packages.  To make things
+confusing, the Raspian Linux distribution is based on the
+Debian Linux distribution.  While the debian package formats
+are the same between both the Ubuntu and Raspian Linux
+distributions, the underlaying Debian packages are 100%
+interoperable.  Sometimes the Ubuntu Linux distribution
+installs files in a different location than the Raspian
+distribution does.  This is great fun.
+
+There are two ways that firmware is provided to the Raspberry Pi.
+There is a package called `raspberrypi-bootloader-nokernel` which
+provide the binary blob *and* there is a program called `rpi-update`
+that can do so as well.  The bootloader stuff tends to be older
+than the `rpi-update` method.
+
+After compiling `userland` using the `buildme` script, the
+`raspicam_node` code compile without errors.  (This was also
+a small mircle.)  When the `raspicam_node` was run it failed.
+After running the `rpi-update` program it worked for a while.
+(This was an incredible miricle.)  As other people tryed to
+install `raspicam_node`, it simply did not work.
+After much sluething it became clear that the newest firmware
+did not work.  So, our temporary solution is to use slightly
+older firmware, until whatever problem that caused `raspicam_node`
+to not work, to start working.
+
+The miracle is that there was a small window were the firmware
+worked, and we managed to find that window.  Thus, the command
+below will install firmware that works:
+
+        sudo rpi-update cad980c560b6c240fdaf6cb4b7703921b18114e3
+
+and
+
+        sudo rpi-update
+
+will install the newest firmware which currently does not work.
+
+If you are curious about firmware revision numbers, there is a
+[post](http://raspberrypi.stackexchange.com/questions/29991/how-do-i-find-the-firmware-repository-commit-which-matches-the-firmware-version)
+about them.
+
 ## TO DO List :
 
 * remove warnings from raspicamcontrol
