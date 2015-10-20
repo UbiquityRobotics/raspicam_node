@@ -37,18 +37,30 @@ Services:
 
 Parameters:
 
-* `width`: Width of the captured images (0 < width <= 1920).
+* `width` (default: 640): Width of the captured images (0 < width <= 1920).
 
-* `height`: Height of the captured images (0 < width <= 1080).
+* `height` (default: 480): Height of the captured images (0 < width <= 1080).
 
-* `framerate`: Framerate of the captured images (0 < framerate <= 90).
+* `framerate` (default: 30): Framerate of the captured images
+   (0 < framerate <= 90).
 
-* `quality`: Quality of the captured images (0 < quality <= 100).
+* `quality` (default 80): Quality of the captured images (0 < quality <= 100).
 
-* `tf_prefix`: Prefix for frame_id.
+* `tf_prefix` (default: ""): Prefix for frame_id.
 
-For parameter changes to be applied, the capture need to be restarted
-using the `/stop_capture` and `/start_capture` services.
+* `camera_frame_id` (default: ""): The camera TF frame id.
+
+* `ssrc_publishing_mode` (default 0): Publishing mode:
+
+   * `0`: Publish images awlays when camera is on.
+
+   * `1`: Publish only one image by request.
+
+   * `2`: Publish one image and the switch to waiting (huh?).
+
+Parameter changes are applied after the camera is stoped
+using the `/stop_capture` and then restarted using the
+`/start_capture` service.
 
 Example 1:
 
