@@ -43,7 +43,8 @@ Parameters:
 
 * `camera_name`: The name of the camera.
 
-* `framerate`: Framerate of the captured images (0 < framerate <= 90).
+* `framerate` (default: 30): Framerate of the captured images
+   (0 < framerate <= 90).
 
 * `height`: Height of the captured images (0 < width <= 1080).
 
@@ -61,8 +62,9 @@ Parameters:
 
 * `width`: Width of the captured images (0 < width <= 1920).
 
-For parameter changes to be applied, the capture need to be restarted
-using the `/stop_capture` and `/start_capture` services.
+Parameter changes are applied after the camera is stoped
+using the `/stop_capture` and then restarted using the
+`/start_capture` service.
 
 Example 1:
 
