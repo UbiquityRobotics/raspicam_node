@@ -20,7 +20,7 @@ Topics:
 * `/camera/compressed`:
   Publishes `sensor_msgs/CompressedImage` with jpeg from the camera module.
 
-* `camera/camera_info`:
+* `/camera/camera_info`:
   Publishes `sensor_msgs/CameraInfo` camera info for each frame.
 
 Services:
@@ -37,15 +37,29 @@ Services:
 
 Parameters:
 
-* `width`: Width of the captured images (0 < width <= 1920).
+* `camera_frame_id`: The frame identifier to associate the camera.
 
-* `height`: Height of the captured images (0 < width <= 1080).
+* `camera_info_url`: The URL of the camera information `.yaml` file.
+
+* `camera_name`: The name of the camera.
 
 * `framerate`: Framerate of the captured images (0 < framerate <= 90).
 
+* `height`: Height of the captured images (0 < width <= 1080).
+
 * `quality`: Quality of the captured images (0 < quality <= 100).
 
-* `tf_prefix`: Prefix for frame_id.
+* `srrc_publishing_mode`: 
+
+   * `0`: Publish images always when the camera is on (default).
+
+   * `1`: Publish only one image by request.
+
+   * `2`: Publish one image and then switch to waiting mode.  (Huh?)
+
+* `tf_prefix`: Prefix for `camra_frame_id`.
+
+* `width`: Width of the captured images (0 < width <= 1920).
 
 For parameter changes to be applied, the capture need to be restarted
 using the `/stop_capture` and `/start_capture` services.
@@ -66,8 +80,7 @@ To try the 90 fps mode :
 ## Build Intructions
 
 1. Log into a Raspberry Pi 2 with
-   [Ubuntu and ROS installed](Doc_Downloading_and_Installing_the_Ubiquity_Ubuntu
-_ROS_Kernel_Image.md).
+   [Ubuntu and ROS installed](Doc_Downloading_and_Installing_the_Ubiquity_Ubuntu_ROS_Kernel_Image.md).
 
 2. Make clone, build and install the Raspberry Pi user land programs
    from source code:
@@ -118,7 +131,8 @@ _ROS_Kernel_Image.md).
         cd ~
         sudo apt-get install -y curl
         sudo curl -L --output /usr/bin/rpi-update https://raw.githubusercontent.com/Hexxeh/rpi-update/master/rpi-update && sudo chmod +x /usr/bin/rpi-update
-        sudo rpi-update cad980c560b6c240fdaf6cb4b7703921b18114e3
+        #sudo rpi-update cad980c560b6c240fdaf6cb4b7703921b18114e3
+        sudo rpi-update
         sudo reboot
 
 10. Run the raspicam node:
@@ -129,7 +143,6 @@ _ROS_Kernel_Image.md).
 
     If you get an error that looks like:
 
-
         mmal: mmal_component_create_core: could not find component 'vc.ril.camera'
         mmal: Failed to create camera component
         [INFO] [1444257925.655477127]: init_cam: Failed to create camera component
@@ -138,6 +151,10 @@ _ROS_Kernel_Image.md).
     The two things to check are to 1) make sure the Raspberry Pi
     firmware as been updated and 2) make sure the cable is properly
     seated.  Both these issues generate the same error message.
+    If you still get this error, you probably have a bad version of
+    Raspberry Pi firmware.  Try to find older firmware version to feed
+    into the rpi-update` command.  The firmware version number is stored
+    in `/boot/.firmware_revision`.
 
 11. View the image on a laptop/desktop:
 
