@@ -867,8 +867,9 @@ int main(int argc, char **argv){
 #ifdef ADDED_FOR_SSRC
    ros::ServiceServer publish_image_requests_server = n.advertiseService("camera/publish_once_now", serv_publish_image_once);
    if(srrc_publishing_mode != SrrcPublish_Always)
-       start_capture(&state_srv);
+     start_capture(&state_srv);
 #endif // #ifdef ADDED_FOR_SSRC
+   start_capture(&state_srv);
    ros::spin();
    close_cam(&state_srv);
    return 0;

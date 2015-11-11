@@ -26,7 +26,8 @@ Topics:
 Services:
 
 * `/camera/start_capture`:
-  Start video capture and publication.
+  Start video capture and publication. 
+  NOTE ATP42 - this has been removed we always publish.
 
 * `/camera/stop_capture`:
   Stop video capture and publication (buggy at the moment).
@@ -69,14 +70,14 @@ using the `/stop_capture` and then restarted using the
 Example 1:
 
         rosrun raspicam raspicam_node
-        rosservice call /camera/start_capture
+        #rosservice call /camera/start_capture
         rosrun image_view image_view image:=/camera/image _image_transport:=compressed
 
 If you want to try 90 fps mode, you'll have to decrease the quality factor.
 To try the 90 fps mode :
 
         rosrun raspicam raspicam_node _framerate:=90 _quality:=10
-        rosservice call /camera/start_capture
+        #rosservice call /camera/start_capture
         rosrun image_view image_view image:=/camera/image _image_transport:=compressed
 
 ## Build Intructions
@@ -141,7 +142,7 @@ To try the 90 fps mode :
 
         roscore &
         rosrun raspicam raspicam_node &
-        rosservice call /raspicam_node/camera/start_capture 
+        #rosservice call /raspicam_node/camera/start_capture 
 
     If you get an error that looks like:
 
