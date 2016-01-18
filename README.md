@@ -206,7 +206,7 @@ packaging system called Debian Packages.  To make things
 confusing, the Raspian Linux distribution is based on the
 Debian Linux distribution.  While the debian package formats
 are the same between both the Ubuntu and Raspian Linux
-distributions, the underlaying Debian packages are 100%
+distributions, the underlaying Debian packages are not 100%
 interoperable.  Sometimes the Ubuntu Linux distribution
 installs files in a different location than the Raspian
 distribution does.  This is great fun.
