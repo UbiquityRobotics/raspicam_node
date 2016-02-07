@@ -26,6 +26,8 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#ifdef __arm__
+
 /**
  * \file RaspiCLI.c
  * Code for handling command line parameters
@@ -110,3 +112,5 @@ void raspicli_display_help(const COMMAND_LIST *commands, const int num_commands)
          commands[i].command, commands[i].help);
    }
 }
+
+#endif // __arm__

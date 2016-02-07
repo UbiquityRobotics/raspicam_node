@@ -47,6 +47,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * We use the RaspiPreview code to handle the (generic) preview window
  */
 
+#ifdef __x86_64__
+
+#include <stdio.h>
+
+int main(int argc, char **argv) {
+    (void)fprintf(stderr,
+      "The raspicam_node for the x86/64 architecture is a fake!\n");
+    return 1;
+}
+
+#endif // __x86_64__
+
+#ifdef __arm__
+
 // We use some GNU extensions (basename)
 #include <stdio.h>
 #include <stdlib.h>
@@ -874,3 +888,5 @@ int main(int argc, char **argv){
    close_cam(&state_srv);
    return 0;
 }
+
+#endif // __arm__

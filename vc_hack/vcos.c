@@ -1,0 +1,2 @@
+void vcos(void) {
+}

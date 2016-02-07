@@ -1,0 +1,2 @@
+void vchostif(void) {
+}
