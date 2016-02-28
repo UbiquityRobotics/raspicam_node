@@ -58,6 +58,36 @@ catkin_package(
 ## Build ##
 ###########
 
+if(${CMAKE_SYSTEM_PROCESSOR} MATCHES arm*) 
+  FIND_LIBRARY(mmal_LIBS NAMES mmal PATHS /opt/vc/lib)
+  FIND_LIBRARY(mmalcore_LIBS NAMES mmal_core PATHS /opt/vc/lib)
+  FIND_LIBRARY(mmalutil_LIBS NAMES mmal_util PATHS /opt/vc/lib)
+  FIND_LIBRARY(mmalvcclient_LIBS NAMES mmal_vc_client PATHS /opt/vc/lib)
+  IF( (NOT mmal_LIBS ) OR (NOT mmalutil_LIBS) OR (NOT mmalcore_LIBS) OR (NOT mmalvcclient_LIBS) )
+      MESSAGE(FATAL_ERROR "Could not find mmal libraries")
+  ENDIF()
+
+  FIND_LIBRARY(vcos_LIBS NAMES vcos PATHS /opt/vc/lib)
+  IF( (NOT vcos_LIBS ))
+      MESSAGE(FATAL_ERROR "Could not find vcos library")
+  ENDIF()
+
+  FIND_LIBRARY(bcmhost_LIBS NAMES bcm_host PATHS /opt/vc/lib)
+  IF( (NOT bcmhost_LIBS ))
+      MESSAGE(FATAL_ERROR "Could not find bcm_host library")
+  ENDIF()
+
+  set(RPI_LIBRARIES ${RPI_LIBRARIES} 
+    ${mmalcore_LIBS} 
+    ${mmalutil_LIBS} 
+    ${mmal_LIBS}  
+    ${mmalvcclient_LIBS} 
+    ${vcos_LIBS} 
+    ${bcmhost_LIBS} 
+  )
+ENDIF()
+
+
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(include
@@ -87,14 +117,8 @@ add_executable(raspicam_node src/raspicam_node.cpp)
 ## Specify libraries to link a library or executable target against
 target_link_libraries(raspicam_node
   ${catkin_LIBRARIES}
-  raspicamcontrol raspicli   
-  /opt/vc/lib/libbcm_host.so
-  /opt/vc/lib/libvcos.so
-  /opt/vc/lib/libmmal.so
-  /opt/vc/lib/libmmal_core.so
-  /opt/vc/lib/libmmal_util.so
-  /opt/vc/lib/libmmal_vc_client.so
-  /opt/vc/lib/libvchostif.a
+  ${RPI_LIBRARIES}
+  raspicamcontrol raspicli
 )
 
 #############
