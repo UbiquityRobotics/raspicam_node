@@ -45,7 +45,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /// Cross reference structure, mode string against mode id
 typedef struct xref_t
 {
-   char *mode;
+   char const * mode;
    int mmal_mode;
 } XREF_T;
 
