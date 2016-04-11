@@ -34,13 +34,13 @@ if(${CMAKE_SYSTEM_PROCESSOR} MATCHES arm*)
   ENDIF()
 
   set(RPI_LIBRARIES ${RPI_LIBRARIES} 
-    ${mmalcore_LIBS} 
-    ${mmalutil_LIBS} 
-    ${mmal_LIBS}  
-    ${mmalvcclient_LIBS} 
-    ${vcos_LIBS} 
-    ${bcmhost_LIBS}
-    ${vchostif_LIBS} 
+  ${bcmhost_LIBS}
+  ${vcos_LIBS} 
+  ${mmal_LIBS} 
+  ${mmalcore_LIBS} 
+  ${mmalutil_LIBS}  
+  ${mmalvcclient_LIBS} 
+  ${vchostif_LIBS} 
   )
 ENDIF()
 
@@ -122,8 +122,8 @@ add_executable(raspicam_node src/raspicam_node.cpp)
 ## Specify libraries to link a library or executable target against
 target_link_libraries(raspicam_node
   ${catkin_LIBRARIES}
-  ${RPI_LIBRARIES}
   raspicamcontrol raspicli
+  ${RPI_LIBRARIES} 
 )
 
 #############
