@@ -28,13 +28,19 @@ if(${CMAKE_SYSTEM_PROCESSOR} MATCHES arm*)
       MESSAGE(FATAL_ERROR "Could not find bcm_host library")
   ENDIF()
 
+  FIND_LIBRARY(vchostif_LIBS NAMES vchostif PATHS /opt/vc/lib)
+  IF( (NOT vchostif_LIBS ))
+      MESSAGE(FATAL_ERROR "Could not find vchostif library")
+  ENDIF()
+
   set(RPI_LIBRARIES ${RPI_LIBRARIES} 
     ${mmalcore_LIBS} 
     ${mmalutil_LIBS} 
     ${mmal_LIBS}  
     ${mmalvcclient_LIBS} 
     ${vcos_LIBS} 
-    ${bcmhost_LIBS} 
+    ${bcmhost_LIBS}
+    ${vchostif_LIBS} 
   )
 ENDIF()
 
