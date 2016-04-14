@@ -2,8 +2,8 @@
 Changelog for package raspicam
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.0 (2016-04-14)
+------------------
 * Fixed link order bug
 * Make structs char const instead of char
   Prevents lots of compile warnings
