@@ -143,6 +143,8 @@ ros::Publisher camera_info_pub;
 sensor_msgs::CameraInfo c_info;
 std::string tf_prefix;
 std::string camera_frame_id;
+int skip_frames = 0;
+int frames_skipped = 0;
 
 /** Struct used to pass information in encoder port userdata to callback
  */
@@ -293,21 +295,24 @@ static void encoder_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buf
          complete = 1;
 
 	if (complete){
-		sensor_msgs::CompressedImage msg;
-		msg.header.seq = pData->frame;
-		//msg.header.frame_id = tf_prefix;
-		//msg.header.frame_id.append("/camera");
-		msg.header.frame_id = camera_frame_id;
-		msg.header.stamp = ros::Time::now();
-		msg.format = "jpg";
-		msg.data.insert( msg.data.end(), pData->buffer[pData->frame & 1], &(pData->buffer[pData->frame & 1][pData->id]) );
-		image_pub.publish(msg);
-		c_info.header.seq = pData->frame;
-		c_info.header.stamp = msg.header.stamp;
-		c_info.header.frame_id = msg.header.frame_id;
-		camera_info_pub.publish(c_info);
-		pData->frame++;
-		pData->id = 0;		
+		if (skip_frames > 0 && frames_skipped < skip_frames) {
+			frames_skipped++;
+		} else {
+			frames_skipped = 0;
+			sensor_msgs::CompressedImage msg;
+			msg.header.seq = pData->frame;
+			msg.header.frame_id = camera_frame_id;
+			msg.header.stamp = ros::Time::now();
+			msg.format = "jpg";
+			msg.data.insert( msg.data.end(), pData->buffer[pData->frame & 1], &(pData->buffer[pData->frame & 1][pData->id]) );
+			image_pub.publish(msg);
+			c_info.header.seq = pData->frame;
+			c_info.header.stamp = msg.header.stamp;
+			c_info.header.frame_id = msg.header.frame_id;
+			camera_info_pub.publish(c_info);
+			pData->frame++;
+		}
+		pData->id = 0;
 	}
    }
 
@@ -857,6 +862,8 @@ int main(int argc, char **argv){
    ros::init(argc, argv, "raspicam_node");
    ros::NodeHandle n("~");
    
+   n.param("skip_frames", skip_frames, 0);
+
    std::string camera_info_url;
    std::string camera_name;
 
