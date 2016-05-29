@@ -816,9 +816,11 @@ int close_cam(RASPIVID_STATE *state){
 
 void reconfigure_callback(raspicam::CameraConfig &config, uint32_t level) {
   ROS_INFO("Reconfigure Request: contrast %d, sharpness %d, brightness %d, saturation %d, ISO %d, exposureCompensation %d,"
-		   " videoStabilisation %d, zoom %.2f, exposure_mode %s, awb_mode %s",
+		   " videoStabilisation %d, vFlip %d, hFlip %d,"
+		   " zoom %.2f, exposure_mode %s, awb_mode %s",
 		    config.contrast, config.sharpness, config.brightness,
 			config.saturation, config.ISO, config.exposureCompensation, config.videoStabilisation,
+			config.vFlip, config.hFlip,
             config.zoom,
             config.exposure_mode.c_str(),
 			config.awb_mode.c_str());
@@ -852,6 +854,7 @@ void reconfigure_callback(raspicam::CameraConfig &config, uint32_t level) {
   raspicamcontrol_set_ISO(state_srv.camera_component, config.ISO);
   raspicamcontrol_set_exposure_compensation(state_srv.camera_component, config.exposureCompensation);
   raspicamcontrol_set_video_stabilisation(state_srv.camera_component, config.videoStabilisation);
+  raspicamcontrol_set_flips(state_srv.camera_component, config.hFlip, config.vFlip);
 
   ROS_INFO("Reconfigure done");
 }
