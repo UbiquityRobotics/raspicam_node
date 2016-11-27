@@ -249,14 +249,14 @@ static void get_status(RASPIVID_STATE *state)
    }
 
   if (ros::param::get("~hFlip",  temp_bool)){
-    state->h_flip = 0;
+    state->h_flip = temp_bool;
   } else{
     state->h_flip = 0;
     ros::param::set("~hFlip", 0);
   }
 
   if (ros::param::get("~vFlip",  temp_bool)){
-    state->v_flip = 0;
+    state->v_flip = temp_bool;
   } else{
     state->v_flip = 0;
     ros::param::set("~vFlip", 0);
