@@ -180,23 +180,19 @@ static void get_status(RASPIVID_STATE *state)
    // Default everything to zero
    memset(state, 0, sizeof(RASPIVID_STATE));
 
-   if (ros::param::get("~width", temp )){
-	if(temp > 0 && temp <= 1920)	
-		state->width = temp;
-	else	state->width = 640;
-   }else{
-	state->width = 640;
-	ros::param::set("~width", 640);
-   }
+    if (ros::param::get("~width", temp)) {
+        state->width = temp;
+    } else {
+        state->width = 640;
+        ros::param::set("~width", 640);
+    }
 
-   if (ros::param::get("~height", temp )){
-	if(temp > 0 && temp <= 1080)	
-		state->height = temp;
-	else	state->height = 480;
-   }else{
-	state->height = 480;
-	ros::param::set("~height", 480);
-   }
+    if (ros::param::get("~height", temp)) {
+        state->height = temp;
+    } else {
+        state->height = 480;
+        ros::param::set("~height", 480);
+    }
 
    if (ros::param::get("~quality", temp )){
 	if(temp > 0 && temp <= 100)
@@ -808,25 +804,10 @@ int close_cam(RASPIVID_STATE *state){
 	}else return 1;
 }
 
-bool serv_start_cap(	std_srvs::Empty::Request  &req,
-			std_srvs::Empty::Response &res )
-{
-  start_capture(&state_srv);
-  return true;
-}
 
-
-bool serv_stop_cap(	std_srvs::Empty::Request  &req,
-            std_srvs::Empty::Response &res )
-{
-  close_cam(&state_srv);
-  return true;
-}
-
-
-int main(int argc, char **argv){
-   ros::init(argc, argv, "raspicam_node");
-   ros::NodeHandle n("~");
+int main(int argc, char **argv) {
+    ros::init(argc, argv, "raspicam_node");
+    ros::NodeHandle n("~");
    
    std::string camera_info_url;
    std::string camera_name;
@@ -838,23 +819,20 @@ int main(int argc, char **argv){
    camera_info_manager::CameraInfoManager c_info_man (n, camera_name, camera_info_url);
    get_status(&state_srv);
 
-   if(!c_info_man.loadCameraInfo (camera_info_url)){
-	ROS_INFO("Calibration file missing. Camera not calibrated");
-   }
-   else
-   {
-   	c_info = c_info_man.getCameraInfo ();
-	ROS_INFO("Camera successfully calibrated");
-   }
-   image_pub = n.advertise<sensor_msgs::CompressedImage>("camera/image/compressed", 1);
-   camera_info_pub = n.advertise<sensor_msgs::CameraInfo>("camera/camera_info", 1);
-   ros::ServiceServer start_cam = n.advertiseService("camera/start_capture", serv_start_cap);
-   ros::ServiceServer stop_cam = n.advertiseService("camera/stop_capture", serv_stop_cap);
+    if (!c_info_man.loadCameraInfo(camera_info_url)) {
+        ROS_INFO("Calibration file missing. Camera not calibrated");
+    } else {
+        c_info = c_info_man.getCameraInfo();
+        ROS_INFO("Camera successfully calibrated");
+    }
 
-   start_capture(&state_srv);
-   ros::spin();
-   close_cam(&state_srv);
-   return 0;
+    image_pub = n.advertise<sensor_msgs::CompressedImage>("image/compressed", 1);
+    camera_info_pub = n.advertise<sensor_msgs::CameraInfo>("camera_info", 1);
+
+    start_capture(&state_srv);
+    ros::spin();
+    close_cam(&state_srv);
+    return 0;
 }
 
 #endif // __arm__
