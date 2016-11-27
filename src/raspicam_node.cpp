@@ -247,6 +247,13 @@ static void get_status(RASPIVID_STATE *state)
 
    // Set up the camera_parameters to default
    raspicamcontrol_set_defaults(&state->camera_parameters);
+
+  if (ros::param::get("~shutter_speed",  temp)){
+    state->camera_parameters.shutter_speed = temp;
+  } else{
+    state->camera_parameters.shutter_speed = 0;
+    ros::param::set("~shutter_speed", 0);
+  }
 }
 
 
