@@ -256,6 +256,6 @@ about them.
 
 The following commands can be used to produce a camera calibration:
 
-    $ rosrun image_transport republish compressed in:=/raspicam_node/camera/image raw out:=/raspicam_node/cama/image
-    $ rosrun camera_calibration cameracalibrator.py --size 8x6 --square 0.74 image:=/raspicam_node/camera/image camera:=/raspicam_node
+    $ rosrun image_transport republish compressed in:=/raspicam_node/image raw out:=/raspicam_node/image
+    $ rosrun camera_calibration cameracalibrator.py --size 8x6 --square 0.74 image:=/raspicam_node/image camera:=/raspicam_node
 
