@@ -465,6 +465,8 @@ static MMAL_COMPONENT_T *create_camera_component(RASPIVID_STATE *state)
 
    raspicamcontrol_set_all_parameters(camera, &state->camera_parameters);
 
+   raspicamcontrol_set_flips(&state->camera_parameters, 0, 1);
+
    state->camera_component = camera;
 
    ROS_INFO("Camera component done\n");
