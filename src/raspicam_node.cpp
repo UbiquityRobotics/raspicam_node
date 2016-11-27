@@ -94,20 +94,6 @@ int main(int argc, char **argv) {
 
 #include <semaphore.h>
 
-#define ADDED_FOR_SSRC
-
-#ifdef ADDED_FOR_SSRC
-
-enum SrrcPublishingMode {
-    SrrcPublish_Always = 0, //: publish images always when the camera is on (default)
-    SrrcPublish_Wait   = 1, //: publish only one image by request
-    SrrcPublish_Once   = 2  //: publish one image and then switch in this waiting mode
-};
-
-SrrcPublishingMode srrc_publishing_mode = SrrcPublish_Always;
-
-#endif // #ifdef ADDED_FOR_SSRC
-
 
 /// Camera number to use - we only have one camera, indexed from 0.
 #define CAMERA_NUMBER 0
@@ -123,10 +109,6 @@ SrrcPublishingMode srrc_publishing_mode = SrrcPublish_Always;
 
 /// Video render needs at least 2 buffers.
 #define VIDEO_OUTPUT_BUFFERS_NUM 3
-
-
-/// Interval at which we check for an failure abort during capture
-
 
 
 int mmal_status_to_int(MMAL_STATUS_T status);
@@ -198,23 +180,19 @@ static void get_status(RASPIVID_STATE *state)
    // Default everything to zero
    memset(state, 0, sizeof(RASPIVID_STATE));
 
-   if (ros::param::get("~width", temp )){
-	if(temp > 0 && temp <= 1920)	
-		state->width = temp;
-	else	state->width = 640;
-   }else{
-	state->width = 640;
-	ros::param::set("~width", 640);
-   }
+    if (ros::param::get("~width", temp)) {
+        state->width = temp;
+    } else {
+        state->width = 640;
+        ros::param::set("~width", 640);
+    }
 
-   if (ros::param::get("~height", temp )){
-	if(temp > 0 && temp <= 1080)	
-		state->height = temp;
-	else	state->height = 480;
-   }else{
-	state->height = 480;
-	ros::param::set("~height", 480);
-   }
+    if (ros::param::get("~height", temp)) {
+        state->height = temp;
+    } else {
+        state->height = 480;
+        ros::param::set("~height", 480);
+    }
 
    if (ros::param::get("~quality", temp )){
 	if(temp > 0 && temp <= 100)
@@ -272,10 +250,6 @@ static void get_status(RASPIVID_STATE *state)
 }
 
 
-
-
-
-
 /**
  *  buffer header callback function for encoder
  *
@@ -294,13 +268,6 @@ static void encoder_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buf
    PORT_USERDATA *pData = (PORT_USERDATA *)port->userdata;
    if (pData && pData->pstate->isInit)
    {
-#ifdef ADDED_FOR_SSRC
-      if(srrc_publishing_mode != SrrcPublish_Wait) {
-          if(srrc_publishing_mode == SrrcPublish_Once)
-              //: switch back to waiting mode:
-              srrc_publishing_mode = SrrcPublish_Wait;
-          //: do publish the image messages:
-#endif // #ifdef ADDED_FOR_SSRC
 
       int bytes_written = buffer->length;
       if (buffer->length)
@@ -337,10 +304,6 @@ static void encoder_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buf
 		pData->id = 0;		
 	}
    }
-
-#ifdef ADDED_FOR_SSRC
-   }
-#endif // #ifdef ADDED_FOR_SSRC
 
    // release buffer back to the pool
    mmal_buffer_header_release(buffer);
@@ -841,45 +804,14 @@ int close_cam(RASPIVID_STATE *state){
 	}else return 1;
 }
 
-bool serv_start_cap(	std_srvs::Empty::Request  &req,
-			std_srvs::Empty::Response &res )
-{
-  start_capture(&state_srv);
-  return true;
-}
 
-
-bool serv_stop_cap(	std_srvs::Empty::Request  &req,
-            std_srvs::Empty::Response &res )
-{
-  close_cam(&state_srv);
-  return true;
-}
-
-#ifdef ADDED_FOR_SSRC
-bool serv_publish_image_once(std_srvs::Empty::Request&, std_srvs::Empty::Response&) {
-  srrc_publishing_mode = SrrcPublish_Once;
-  return true;
-}
-#endif // #ifdef ADDED_FOR_SSRC
-
-
-
-int main(int argc, char **argv){
-   ros::init(argc, argv, "raspicam_node");
-   ros::NodeHandle n("~");
+int main(int argc, char **argv) {
+    ros::init(argc, argv, "raspicam_node");
+    ros::NodeHandle n("~");
    
    std::string camera_info_url;
    std::string camera_name;
-#ifdef ADDED_FOR_SSRC
-   {
-       int temp;
-       if(ros::param::get("~srrc_publishing_mode", temp ))
-           srrc_publishing_mode = (SrrcPublishingMode)temp;
-       else
-           srrc_publishing_mode = SrrcPublish_Always;
-   }
-#endif // #ifdef ADDED_FOR_SSRC
+
    n.param("camera_info_url", camera_info_url, std::string("package://raspicam/calibrations/camera.yaml"));
    n.param("camera_name", camera_name, std::string("camera"));
    ROS_INFO("Loading CameraInfo from %s", camera_info_url.c_str());
@@ -887,27 +819,20 @@ int main(int argc, char **argv){
    camera_info_manager::CameraInfoManager c_info_man (n, camera_name, camera_info_url);
    get_status(&state_srv);
 
-   if(!c_info_man.loadCameraInfo (camera_info_url)){
-	ROS_INFO("Calibration file missing. Camera not calibrated");
-   }
-   else
-   {
-   	c_info = c_info_man.getCameraInfo ();
-	ROS_INFO("Camera successfully calibrated");
-   }
-   image_pub = n.advertise<sensor_msgs::CompressedImage>("camera/image/compressed", 1);
-   camera_info_pub = n.advertise<sensor_msgs::CameraInfo>("camera/camera_info", 1);
-   ros::ServiceServer start_cam = n.advertiseService("camera/start_capture", serv_start_cap);
-   ros::ServiceServer stop_cam = n.advertiseService("camera/stop_capture", serv_stop_cap);
-#ifdef ADDED_FOR_SSRC
-   ros::ServiceServer publish_image_requests_server = n.advertiseService("camera/publish_once_now", serv_publish_image_once);
-   if(srrc_publishing_mode != SrrcPublish_Always)
-     start_capture(&state_srv);
-#endif // #ifdef ADDED_FOR_SSRC
-   start_capture(&state_srv);
-   ros::spin();
-   close_cam(&state_srv);
-   return 0;
+    if (!c_info_man.loadCameraInfo(camera_info_url)) {
+        ROS_INFO("Calibration file missing. Camera not calibrated");
+    } else {
+        c_info = c_info_man.getCameraInfo();
+        ROS_INFO("Camera successfully calibrated");
+    }
+
+    image_pub = n.advertise<sensor_msgs::CompressedImage>("image/compressed", 1);
+    camera_info_pub = n.advertise<sensor_msgs::CameraInfo>("camera_info", 1);
+
+    start_capture(&state_srv);
+    ros::spin();
+    close_cam(&state_srv);
+    return 0;
 }
 
 #endif // __arm__
