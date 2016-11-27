@@ -240,6 +240,13 @@ static void get_status(RASPIVID_STATE *state)
     ros::param::set("~vFlip", 0);
   }
 
+  if (ros::param::get("~shutter_speed",  temp)){
+    state->camera_parameters->shutter_speed = temp;
+  } else{
+    state->camera_parameters->shutter_speed = 0;
+    ros::param::set("~shutter_speed", 0);
+  }
+
    state->isInit = 0;
 
    // Setup preview window defaults
@@ -448,7 +455,6 @@ static MMAL_COMPONENT_T *create_camera_component(RASPIVID_STATE *state)
    raspicamcontrol_set_all_parameters(camera, &state->camera_parameters);
 
    raspicamcontrol_set_flips(camera, state->h_flip, state->v_flip);
-   raspicamcontrol_set_shutter_speed(camera, 10000);
 
    state->camera_component = camera;
 

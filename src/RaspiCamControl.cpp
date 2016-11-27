@@ -814,7 +814,7 @@ int raspicamcontrol_set_all_parameters(MMAL_COMPONENT_T *camera, const RASPICAM_
    result += raspicamcontrol_set_rotation(camera, params->rotation);
    result += raspicamcontrol_set_flips(camera, params->hflip, params->vflip);
    result += raspicamcontrol_set_ROI(camera, params->roi);
-   return += raspicamcontrol_set_shutter_speed(camera, params->shutter_speed);
+   result += raspicamcontrol_set_shutter_speed(camera, params->shutter_speed);
    return result;
 }
 
@@ -1182,7 +1182,7 @@ int raspicamcontrol_set_ROI(MMAL_COMPONENT_T *camera, PARAM_FLOAT_RECT_T rect)
  * @param the shutter_speed in microseconds
  * @return 0 if successful, non-zero if any parameters out of range
  */
-int raspicamcontrol_set_shutter_speed(MMAL_COMPONENT_T *camera, int shutter_speed);
+int raspicamcontrol_set_shutter_speed(MMAL_COMPONENT_T *camera, int shutter_speed)
 {
 
    return mmal_status_to_int(mmal_port_parameter_set_uint32(camera->control, MMAL_PARAMETER_SHUTTER_SPEED, shutter_speed));
