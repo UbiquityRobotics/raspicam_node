@@ -123,9 +123,6 @@ typedef struct
    int framerate;                      /// Requested frame rate (fps)
    int quality;
 
-   bool h_flip;
-   bool v_flip;
-
    RASPICAM_CAMERA_PARAMETERS camera_parameters; /// Camera setup parameters
 
    MMAL_COMPONENT_T *camera_component;    /// Pointer to the camera component
@@ -226,20 +223,6 @@ static void get_status(RASPIVID_STATE *state)
 	ros::param::set("~camera_frame_id", "");
    }
 
-  if (ros::param::get("~hFlip",  temp_bool)){
-    state->h_flip = temp_bool;
-  } else{
-    state->h_flip = 0;
-    ros::param::set("~hFlip", 0);
-  }
-
-  if (ros::param::get("~vFlip",  temp_bool)){
-    state->v_flip = temp_bool;
-  } else{
-    state->v_flip = 0;
-    ros::param::set("~vFlip", 0);
-  }
-
    state->isInit = 0;
 
    // Setup preview window defaults
@@ -247,6 +230,20 @@ static void get_status(RASPIVID_STATE *state)
 
    // Set up the camera_parameters to default
    raspicamcontrol_set_defaults(&state->camera_parameters);
+
+  if (ros::param::get("~hFlip",  temp_bool)){
+    state->camera_parameters.hflip = temp_bool;
+  } else{
+    state->camera_parameters.hflip = 0;
+    ros::param::set("~hFlip", 0);
+  }
+
+  if (ros::param::get("~vFlip",  temp_bool)){
+    state->camera_parameters.vflip = temp_bool;
+  } else{
+    state->camera_parameters.vflip = 0;
+    ros::param::set("~vFlip", 0);
+  }
 
   if (ros::param::get("~shutter_speed",  temp)){
     state->camera_parameters.shutter_speed = temp;
@@ -453,8 +450,6 @@ static MMAL_COMPONENT_T *create_camera_component(RASPIVID_STATE *state)
    }
 
    raspicamcontrol_set_all_parameters(camera, &state->camera_parameters);
-
-   raspicamcontrol_set_flips(camera, state->h_flip, state->v_flip);
 
    state->camera_component = camera;
 
