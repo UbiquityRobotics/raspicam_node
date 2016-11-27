@@ -8,6 +8,8 @@
     <param name="framerate" value="90"/>
     <param name="hFlip" value="true"/>
 
+    <param name="camera_frame_id" value="raspicam"/>
+
   </node>
 
 </launch>
