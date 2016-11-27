@@ -140,6 +140,10 @@ typedef struct
    int height;                         /// requested height of image
    int framerate;                      /// Requested frame rate (fps)
    int quality;
+
+   bool h_flip;
+   bool v_flip;
+
    RASPICAM_CAMERA_PARAMETERS camera_parameters; /// Camera setup parameters
 
    MMAL_COMPONENT_T *camera_component;    /// Pointer to the camera component
@@ -184,6 +188,7 @@ static void get_status(RASPIVID_STATE *state)
 {
    int temp;
    std::string str;
+   bool temp_bool;
    if (!state)
    {
       vcos_assert(0);
@@ -242,6 +247,20 @@ static void get_status(RASPIVID_STATE *state)
 	camera_frame_id = "";
 	ros::param::set("~camera_frame_id", "");
    }
+
+  if (ros::param::get("~hFlip",  temp_bool)){
+    state->h_flip = 0;
+  } else{
+    state->h_flip = 0;
+    ros::param::set("~hFlip", 0);
+  }
+
+  if (ros::param::get("~vFlip",  temp_bool)){
+    state->v_flip = 0;
+  } else{
+    state->v_flip = 0;
+    ros::param::set("~vFlip", 0);
+  }
 
    state->isInit = 0;
 
@@ -465,7 +484,7 @@ static MMAL_COMPONENT_T *create_camera_component(RASPIVID_STATE *state)
 
    raspicamcontrol_set_all_parameters(camera, &state->camera_parameters);
 
-   raspicamcontrol_set_flips(&state->camera_parameters, 0, 1);
+   raspicamcontrol_set_flips(camera, state->h_flip, state->v_flip);
 
    state->camera_component = camera;
 
