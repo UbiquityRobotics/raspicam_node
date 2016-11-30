@@ -254,7 +254,25 @@ about them.
 
 ## Calibration
 
-The following commands can be used to produce a camera calibration:
+The raspicam_node package contains a calibration file for the raspberry
+PI camera versions 1 and 2.  The procedure for calibrating a camera is only necessary
+if you change the lens or image size used.
+
+A tutorial 
+  [Monocular Camera Calibration tutorial](http://wiki.ros.org/camera_calibration/Tutorials/MonocularCalibration)
+shows how to calibrate a single camera.
+
+The
+  [8x6 checkerboard](http://wiki.ros.org/camera_calibration/Tutorials/StereoCalibration?action=AttachFile&do=view&target=check-108.pdf)
+and the
+  [7x6 checkerboard](http://wiki.ros.org/camera_calibration/Tutorials/StereoCalibration?action=AttachFile&do=view&target=check_7x6_108mm.pdf)
+are rather large and require specialized printers to print out at
+full scale.  They can be printed on more common printer sizes
+with auto scaling turned on.  Be sure to carefully measure the
+square size in millimeters and convert to meters by dividing by 1000.
+
+
+A camera calibration can be produced with the following commands:
 
     $ rosrun image_transport republish compressed in:=/raspicam_node/image raw out:=/raspicam_node/image
     $ rosrun camera_calibration cameracalibrator.py --size 8x6 --square 0.74 image:=/raspicam_node/image camera:=/raspicam_node
