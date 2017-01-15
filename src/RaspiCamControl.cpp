@@ -439,7 +439,7 @@ static const char *unmap_xref(const int en, XREF_T *map, int num_refs)
  * @param str Incoming string to match
  * @return MMAL parameter matching the string, or the AUTO option if no match found
  */
-static MMAL_PARAM_EXPOSUREMODE_T exposure_mode_from_string(const char *str)
+/*static*/ MMAL_PARAM_EXPOSUREMODE_T exposure_mode_from_string(const char *str)
 {
    int i = map_xref(str, exposure_map, exposure_map_size);
 
@@ -455,7 +455,7 @@ static MMAL_PARAM_EXPOSUREMODE_T exposure_mode_from_string(const char *str)
  * @param str Incoming string to match
  * @return MMAL parameter matching the string, or the AUTO option if no match found
  */
-static MMAL_PARAM_AWBMODE_T awb_mode_from_string(const char *str)
+/*static*/ MMAL_PARAM_AWBMODE_T awb_mode_from_string(const char *str)
 {
    int i = map_xref(str, awb_map, awb_map_size);
 
