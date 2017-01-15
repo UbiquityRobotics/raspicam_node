@@ -97,6 +97,7 @@ int main(int argc, char **argv) {
 #include <semaphore.h>
 
 
+const int IMG_BUFFER_SIZE = 10 * 1024 * 1024;
 /// Camera number to use - we only have one camera, indexed from 0.
 #define CAMERA_NUMBER 0
 
@@ -280,37 +281,49 @@ static void encoder_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buf
       int bytes_written = buffer->length;
       if (buffer->length)
       {
-         mmal_buffer_header_mem_lock(buffer);
-         memcpy(&(pData->buffer[pData->frame & 1][pData->id]), buffer->data, buffer->length);
-		 pData->id += bytes_written;
-         mmal_buffer_header_mem_unlock(buffer);
+        if (pData->id != INT_MAX) {
+             if (pData->id + buffer->length > IMG_BUFFER_SIZE) {
+                 ROS_ERROR("pData->id (%d) + buffer->length (%d) > IMG_BUFFER_SIZE (%d), skipping the frame",
+                    pData->id, buffer->length, IMG_BUFFER_SIZE);
+                 pData->id = INT_MAX; // mark this frame corrupted
+             } else {
+                 mmal_buffer_header_mem_lock(buffer);
+                 memcpy(&(pData->buffer[pData->frame & 1][pData->id]), buffer->data, buffer->length);
+		         pData->id += bytes_written;
+                 mmal_buffer_header_mem_unlock(buffer);
+             }
+        }
       }
 
       if (bytes_written != buffer->length)
       {
          vcos_log_error("Failed to write buffer data (%d from %d)- aborting", bytes_written, buffer->length);
+         ROS_ERROR("Failed to write buffer data (%d from %d)- aborting", bytes_written, buffer->length);
          pData->abort = 1;
       }
       if (buffer->flags & (MMAL_BUFFER_HEADER_FLAG_FRAME_END | MMAL_BUFFER_HEADER_FLAG_TRANSMISSION_FAILED))
          complete = 1;
 
 	if (complete){
-		if (skip_frames > 0 && frames_skipped < skip_frames) {
-			frames_skipped++;
-		} else {
-			frames_skipped = 0;
-			sensor_msgs::CompressedImage msg;
-			msg.header.seq = pData->frame;
-			msg.header.frame_id = camera_frame_id;
-			msg.header.stamp = ros::Time::now();
-			msg.format = "jpg";
-			msg.data.insert( msg.data.end(), pData->buffer[pData->frame & 1], &(pData->buffer[pData->frame & 1][pData->id]) );
-			image_pub.publish(msg);
-			c_info.header.seq = pData->frame;
-			c_info.header.stamp = msg.header.stamp;
-			c_info.header.frame_id = msg.header.frame_id;
-			camera_info_pub.publish(c_info);
-			pData->frame++;
+	    if (pData->id != INT_MAX) {
+	        //ROS_INFO("Frame size %d", pData->id);
+		    if (skip_frames > 0 && frames_skipped < skip_frames) {
+			    frames_skipped++;
+		    } else {
+			    frames_skipped = 0;
+			    sensor_msgs::CompressedImage msg;
+			    msg.header.seq = pData->frame;
+			    msg.header.frame_id = camera_frame_id;
+			    msg.header.stamp = ros::Time::now();
+			    msg.format = "jpg";
+			    msg.data.insert( msg.data.end(), pData->buffer[pData->frame & 1], &(pData->buffer[pData->frame & 1][pData->id]) );
+			    image_pub.publish(msg);
+			    c_info.header.seq = pData->frame;
+			    c_info.header.stamp = msg.header.stamp;
+			    c_info.header.frame_id = msg.header.frame_id;
+			    camera_info_pub.publish(c_info);
+			    pData->frame++;
+		    }
 		}
 		pData->id = 0;
 	}
@@ -329,8 +342,10 @@ static void encoder_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buf
       if (new_buffer)
          status = mmal_port_send_buffer(port, new_buffer);
 
-      if (!new_buffer || status != MMAL_SUCCESS)
+      if (!new_buffer || status != MMAL_SUCCESS) {
          vcos_log_error("Unable to return a buffer to the encoder port");
+         ROS_ERROR("Unable to return a buffer to the encoder port");
+      }
    }
 }
 
@@ -357,12 +372,14 @@ static MMAL_COMPONENT_T *create_camera_component(RASPIVID_STATE *state)
    if (status != MMAL_SUCCESS)
    {
       vcos_log_error("Failed to create camera component");
+      ROS_ERROR("Failed to create camera component");
       goto error;
    }
 
    if (!camera->output_num)
    {
       vcos_log_error("Camera doesn't have output ports");
+      ROS_ERROR("Camera doesn't have output ports");
       goto error;
    }
 
@@ -411,6 +428,7 @@ static MMAL_COMPONENT_T *create_camera_component(RASPIVID_STATE *state)
    if (status)
    {
       vcos_log_error("camera video format couldn't be set");
+      ROS_ERROR("camera video format couldn't be set");
       goto error;
    }
 
@@ -439,6 +457,7 @@ static MMAL_COMPONENT_T *create_camera_component(RASPIVID_STATE *state)
    if (status)
    {
       vcos_log_error("camera still format couldn't be set");
+      ROS_ERROR("camera still format couldn't be set");
       goto error;
    }
    
@@ -453,6 +472,7 @@ static MMAL_COMPONENT_T *create_camera_component(RASPIVID_STATE *state)
    if (status)
    {
       vcos_log_error("camera component couldn't be enabled");
+      ROS_ERROR("camera component couldn't be enabled");
       goto error;
    }
 
@@ -507,6 +527,7 @@ static void destroy_camera_component(RASPIVID_STATE *state)
     if (status != MMAL_SUCCESS)
     {
        vcos_log_error("Unable to create video encoder component");
+       ROS_ERROR("Unable to create video encoder component");
        goto error;
     }
  
@@ -514,6 +535,7 @@ static void destroy_camera_component(RASPIVID_STATE *state)
     {
        status = MMAL_ENOSYS;
        vcos_log_error("Video encoder doesn't have input/output ports");
+       ROS_ERROR("Video encoder doesn't have input/output ports");
        goto error;
     }
  
@@ -543,6 +565,7 @@ static void destroy_camera_component(RASPIVID_STATE *state)
     if (status != MMAL_SUCCESS)
     {
        vcos_log_error("Unable to set format on video encoder output port");
+       ROS_ERROR("Unable to set format on video encoder output port");
        goto error;
     }
  
@@ -552,6 +575,7 @@ static void destroy_camera_component(RASPIVID_STATE *state)
    if (status != MMAL_SUCCESS)
    {
       vcos_log_error("Unable to set JPEG quality");
+      ROS_ERROR("Unable to set JPEG quality");
       goto error;
    }
 
@@ -562,6 +586,7 @@ static void destroy_camera_component(RASPIVID_STATE *state)
     if (status != MMAL_SUCCESS)
     {
        vcos_log_error("Unable to enable video encoder component");
+       ROS_ERROR("Unable to enable video encoder component");
        goto error;
     }
  
@@ -571,6 +596,7 @@ static void destroy_camera_component(RASPIVID_STATE *state)
     if (!pool)
     {
        vcos_log_error("Failed to create buffer header pool for encoder output port %s", encoder_output->name);
+       ROS_ERROR("Failed to create buffer header pool for encoder output port %s", encoder_output->name);
     }
  
     state->encoder_pool = pool;
@@ -655,6 +681,7 @@ static void signal_handler(int signal_number)
 {
    // Going to abort on all signals
    vcos_log_error("Aborting program\n");
+   ROS_ERROR("Aborting program\n");
 
    // TODO : Need to close any open stuff...how?
 
@@ -707,8 +734,8 @@ int init_cam(RASPIVID_STATE *state)
             ROS_INFO("%s: Failed to connect camera video port to encoder input", __func__);
 	    return 1;
       }
-      callback_data_enc->buffer[0] = (unsigned char *) malloc ( 1024 * 1024 );
-      callback_data_enc->buffer[1] = (unsigned char *) malloc ( 1024 * 1024 );
+      callback_data_enc->buffer[0] = (unsigned char *) malloc ( IMG_BUFFER_SIZE );
+      callback_data_enc->buffer[1] = (unsigned char *) malloc ( IMG_BUFFER_SIZE );
       // Set up our userdata - this is passed though to the callback where we need the information.
       callback_data_enc->pstate = state;
       callback_data_enc->abort = 0;
@@ -747,11 +774,15 @@ int start_capture(RASPIVID_STATE *state){
 	 	{
 	      	MMAL_BUFFER_HEADER_T *buffer = mmal_queue_get(state->encoder_pool->queue);
 
-	      	if (!buffer)
+	      	if (!buffer) {
 	        	vcos_log_error("Unable to get a required buffer %d from pool queue", q);
+	        	ROS_ERROR("Unable to get a required buffer %d from pool queue", q);
+	        }
 
-	       	if (mmal_port_send_buffer(encoder_output_port, buffer)!= MMAL_SUCCESS)
+	       	if (mmal_port_send_buffer(encoder_output_port, buffer)!= MMAL_SUCCESS) {
 	           	vcos_log_error("Unable to send a buffer to encoder output port (%d)", q);
+	           	ROS_ERROR("Unable to send a buffer to encoder output port (%d)", q);
+	        }
 
 	 	}
       	}

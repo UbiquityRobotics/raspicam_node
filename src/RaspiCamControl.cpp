@@ -746,6 +746,7 @@ void raspicamcontrol_set_defaults(RASPICAM_CAMERA_PARAMETERS *params)
    params->exposureMode = MMAL_PARAM_EXPOSUREMODE_AUTO;
    params->exposureMeterMode = MMAL_PARAM_EXPOSUREMETERINGMODE_AVERAGE;
    params->awbMode = MMAL_PARAM_AWBMODE_AUTO;
+   //params->imageEffect = MMAL_PARAM_IMAGEFX_SATURATION;
    params->imageEffect = MMAL_PARAM_IMAGEFX_NONE;
    params->colourEffects.enable = 0;
    params->colourEffects.u = 128;
