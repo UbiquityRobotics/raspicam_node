@@ -92,7 +92,7 @@ int main(int argc, char **argv) {
 #include "RaspiCLI.h"
 
 #include <dynamic_reconfigure/server.h>
-#include <raspicam/CameraConfig.h>
+#include <raspicam_node/CameraConfig.h>
 
 #include <semaphore.h>
 
@@ -845,7 +845,7 @@ int close_cam(RASPIVID_STATE *state){
 }
 
 
-void reconfigure_callback(raspicam::CameraConfig &config, uint32_t level) {
+void reconfigure_callback(raspicam_node::CameraConfig &config, uint32_t level) {
   ROS_INFO("Reconfigure Request: contrast %d, sharpness %d, brightness %d, saturation %d, ISO %d, exposureCompensation %d,"
 		   " videoStabilisation %d, vFlip %d, hFlip %d,"
 		   " zoom %.2f, exposure_mode %s, awb_mode %s",

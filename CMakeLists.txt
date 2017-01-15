@@ -130,7 +130,7 @@ add_executable(raspicam_node src/raspicam_node.cpp)
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 # add_dependencies(raspicam_node raspicam_generate_messages_cpp)
-add_dependencies(raspicam_node raspicam_gencfg)
+add_dependencies(raspicam_node raspicam_node_gencfg)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(raspicam_node
