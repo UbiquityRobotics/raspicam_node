@@ -893,36 +893,41 @@ void reconfigure_callback(raspicam_node::CameraConfig &config, uint32_t level) {
 
 
 int main(int argc, char **argv){
-   ros::init(argc, argv, "raspicam_node");
-   ros::NodeHandle n("~");
-   
-   n.param("skip_frames", skip_frames, 0);
+  ros::init(argc, argv, "raspicam_node");
+  ros::NodeHandle n("~");
 
-   std::string camera_info_url;
-   std::string camera_name;
+  n.param("skip_frames", skip_frames, 0);
 
-   n.param("camera_info_url", camera_info_url, std::string("package://raspicam/calibrations/camera.yaml"));
-   n.param("camera_name", camera_name, std::string("camera"));
-   ROS_INFO("Loading CameraInfo from %s", camera_info_url.c_str());
-   
-   camera_info_manager::CameraInfoManager c_info_man (n, camera_name, camera_info_url);
-   //get_status(&state_srv);
-   init_cam(&state_srv); // will need to figure out how to handle start and stop with dynamic reconfigure
+  std::string camera_info_url;
+  std::string camera_name;
 
-    if (!c_info_man.loadCameraInfo(camera_info_url)) {
-        ROS_INFO("Calibration file missing. Camera not calibrated");
-    } else {
-        c_info = c_info_man.getCameraInfo();
-        ROS_INFO("Camera successfully calibrated");
-    }
+  n.param("camera_info_url", camera_info_url, std::string("package://raspicam/calibrations/camera.yaml"));
+  n.param("camera_name", camera_name, std::string("camera"));
+  ROS_INFO("Loading CameraInfo from %s", camera_info_url.c_str());
 
-    image_pub = n.advertise<sensor_msgs::CompressedImage>("image/compressed", 1);
-    camera_info_pub = n.advertise<sensor_msgs::CameraInfo>("camera_info", 1);
+  camera_info_manager::CameraInfoManager c_info_man (n, camera_name, camera_info_url);
+  //get_status(&state_srv);
+  init_cam(&state_srv); // will need to figure out how to handle start and stop with dynamic reconfigure
 
-    start_capture(&state_srv);
-    ros::spin();
-    close_cam(&state_srv);
-    return 0;
+  if (!c_info_man.loadCameraInfo(camera_info_url)) {
+      ROS_INFO("Calibration file missing. Camera not calibrated");
+  } else {
+      c_info = c_info_man.getCameraInfo();
+      ROS_INFO("Camera successfully calibrated");
+  }
+
+  image_pub = n.advertise<sensor_msgs::CompressedImage>("image/compressed", 1);
+  camera_info_pub = n.advertise<sensor_msgs::CameraInfo>("camera_info", 1);
+
+  dynamic_reconfigure::Server<raspicam::CameraConfig> server;
+  dynamic_reconfigure::Server<raspicam::CameraConfig>::CallbackType f;
+  f = boost::bind(&reconfigure_callback, _1, _2);
+  server.setCallback(f);
+
+  start_capture(&state_srv);
+  ros::spin();
+  close_cam(&state_srv);
+  return 0;
 }
 
 #endif // __arm__
