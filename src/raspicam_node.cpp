@@ -901,7 +901,7 @@ int main(int argc, char **argv){
   std::string camera_info_url;
   std::string camera_name;
 
-  n.param("camera_info_url", camera_info_url, std::string("package://raspicam/calibrations/camera.yaml"));
+  n.param("camera_info_url", camera_info_url, std::string("package://raspicam_node/camera_info/camera.yaml"));
   n.param("camera_name", camera_name, std::string("camera"));
   ROS_INFO("Loading CameraInfo from %s", camera_info_url.c_str());
 
@@ -919,8 +919,8 @@ int main(int argc, char **argv){
   image_pub = n.advertise<sensor_msgs::CompressedImage>("image/compressed", 1);
   camera_info_pub = n.advertise<sensor_msgs::CameraInfo>("camera_info", 1);
 
-  dynamic_reconfigure::Server<raspicam::CameraConfig> server;
-  dynamic_reconfigure::Server<raspicam::CameraConfig>::CallbackType f;
+  dynamic_reconfigure::Server<raspicam_node::CameraConfig> server;
+  dynamic_reconfigure::Server<raspicam_node::CameraConfig>::CallbackType f;
   f = boost::bind(&reconfigure_callback, _1, _2);
   server.setCallback(f);
 
