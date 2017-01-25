@@ -91,10 +91,13 @@ int main(int argc, char **argv) {
 #include "RaspiCamControl.h"
 #include "RaspiCLI.h"
 
+#include <dynamic_reconfigure/server.h>
+#include <raspicam_node/CameraConfig.h>
 
 #include <semaphore.h>
 
 
+const int IMG_BUFFER_SIZE = 10 * 1024 * 1024;
 /// Camera number to use - we only have one camera, indexed from 0.
 #define CAMERA_NUMBER 0
 
@@ -141,6 +144,8 @@ ros::Publisher camera_info_pub;
 sensor_msgs::CameraInfo c_info;
 std::string tf_prefix;
 std::string camera_frame_id;
+int skip_frames = 0;
+int frames_skipped = 0;
 
 /** Struct used to pass information in encoder port userdata to callback
  */
@@ -276,36 +281,51 @@ static void encoder_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buf
       int bytes_written = buffer->length;
       if (buffer->length)
       {
-         mmal_buffer_header_mem_lock(buffer);
-         memcpy(&(pData->buffer[pData->frame & 1][pData->id]), buffer->data, buffer->length);
-		 pData->id += bytes_written;
-         mmal_buffer_header_mem_unlock(buffer);
+        if (pData->id != INT_MAX) {
+             if (pData->id + buffer->length > IMG_BUFFER_SIZE) {
+                 ROS_ERROR("pData->id (%d) + buffer->length (%d) > IMG_BUFFER_SIZE (%d), skipping the frame",
+                    pData->id, buffer->length, IMG_BUFFER_SIZE);
+                 pData->id = INT_MAX; // mark this frame corrupted
+             } else {
+                 mmal_buffer_header_mem_lock(buffer);
+                 memcpy(&(pData->buffer[pData->frame & 1][pData->id]), buffer->data, buffer->length);
+		         pData->id += bytes_written;
+                 mmal_buffer_header_mem_unlock(buffer);
+             }
+        }
       }
 
       if (bytes_written != buffer->length)
       {
          vcos_log_error("Failed to write buffer data (%d from %d)- aborting", bytes_written, buffer->length);
+         ROS_ERROR("Failed to write buffer data (%d from %d)- aborting", bytes_written, buffer->length);
          pData->abort = 1;
       }
       if (buffer->flags & (MMAL_BUFFER_HEADER_FLAG_FRAME_END | MMAL_BUFFER_HEADER_FLAG_TRANSMISSION_FAILED))
          complete = 1;
 
 	if (complete){
-		sensor_msgs::CompressedImage msg;
-		msg.header.seq = pData->frame;
-		//msg.header.frame_id = tf_prefix;
-		//msg.header.frame_id.append("/camera");
-		msg.header.frame_id = camera_frame_id;
-		msg.header.stamp = ros::Time::now();
-		msg.format = "jpg";
-		msg.data.insert( msg.data.end(), pData->buffer[pData->frame & 1], &(pData->buffer[pData->frame & 1][pData->id]) );
-		image_pub.publish(msg);
-		c_info.header.seq = pData->frame;
-		c_info.header.stamp = msg.header.stamp;
-		c_info.header.frame_id = msg.header.frame_id;
-		camera_info_pub.publish(c_info);
-		pData->frame++;
-		pData->id = 0;		
+	    if (pData->id != INT_MAX) {
+	        //ROS_INFO("Frame size %d", pData->id);
+		    if (skip_frames > 0 && frames_skipped < skip_frames) {
+			    frames_skipped++;
+		    } else {
+			    frames_skipped = 0;
+			    sensor_msgs::CompressedImage msg;
+			    msg.header.seq = pData->frame;
+			    msg.header.frame_id = camera_frame_id;
+			    msg.header.stamp = ros::Time::now();
+			    msg.format = "jpg";
+			    msg.data.insert( msg.data.end(), pData->buffer[pData->frame & 1], &(pData->buffer[pData->frame & 1][pData->id]) );
+			    image_pub.publish(msg);
+			    c_info.header.seq = pData->frame;
+			    c_info.header.stamp = msg.header.stamp;
+			    c_info.header.frame_id = msg.header.frame_id;
+			    camera_info_pub.publish(c_info);
+			    pData->frame++;
+		    }
+		}
+		pData->id = 0;
 	}
    }
 
@@ -322,8 +342,10 @@ static void encoder_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buf
       if (new_buffer)
          status = mmal_port_send_buffer(port, new_buffer);
 
-      if (!new_buffer || status != MMAL_SUCCESS)
+      if (!new_buffer || status != MMAL_SUCCESS) {
          vcos_log_error("Unable to return a buffer to the encoder port");
+         ROS_ERROR("Unable to return a buffer to the encoder port");
+      }
    }
 }
 
@@ -350,12 +372,14 @@ static MMAL_COMPONENT_T *create_camera_component(RASPIVID_STATE *state)
    if (status != MMAL_SUCCESS)
    {
       vcos_log_error("Failed to create camera component");
+      ROS_ERROR("Failed to create camera component");
       goto error;
    }
 
    if (!camera->output_num)
    {
       vcos_log_error("Camera doesn't have output ports");
+      ROS_ERROR("Camera doesn't have output ports");
       goto error;
    }
 
@@ -404,6 +428,7 @@ static MMAL_COMPONENT_T *create_camera_component(RASPIVID_STATE *state)
    if (status)
    {
       vcos_log_error("camera video format couldn't be set");
+      ROS_ERROR("camera video format couldn't be set");
       goto error;
    }
 
@@ -432,6 +457,7 @@ static MMAL_COMPONENT_T *create_camera_component(RASPIVID_STATE *state)
    if (status)
    {
       vcos_log_error("camera still format couldn't be set");
+      ROS_ERROR("camera still format couldn't be set");
       goto error;
    }
    
@@ -446,6 +472,7 @@ static MMAL_COMPONENT_T *create_camera_component(RASPIVID_STATE *state)
    if (status)
    {
       vcos_log_error("camera component couldn't be enabled");
+      ROS_ERROR("camera component couldn't be enabled");
       goto error;
    }
 
@@ -500,6 +527,7 @@ static void destroy_camera_component(RASPIVID_STATE *state)
     if (status != MMAL_SUCCESS)
     {
        vcos_log_error("Unable to create video encoder component");
+       ROS_ERROR("Unable to create video encoder component");
        goto error;
     }
  
@@ -507,6 +535,7 @@ static void destroy_camera_component(RASPIVID_STATE *state)
     {
        status = MMAL_ENOSYS;
        vcos_log_error("Video encoder doesn't have input/output ports");
+       ROS_ERROR("Video encoder doesn't have input/output ports");
        goto error;
     }
  
@@ -536,6 +565,7 @@ static void destroy_camera_component(RASPIVID_STATE *state)
     if (status != MMAL_SUCCESS)
     {
        vcos_log_error("Unable to set format on video encoder output port");
+       ROS_ERROR("Unable to set format on video encoder output port");
        goto error;
     }
  
@@ -545,6 +575,7 @@ static void destroy_camera_component(RASPIVID_STATE *state)
    if (status != MMAL_SUCCESS)
    {
       vcos_log_error("Unable to set JPEG quality");
+      ROS_ERROR("Unable to set JPEG quality");
       goto error;
    }
 
@@ -555,6 +586,7 @@ static void destroy_camera_component(RASPIVID_STATE *state)
     if (status != MMAL_SUCCESS)
     {
        vcos_log_error("Unable to enable video encoder component");
+       ROS_ERROR("Unable to enable video encoder component");
        goto error;
     }
  
@@ -564,6 +596,7 @@ static void destroy_camera_component(RASPIVID_STATE *state)
     if (!pool)
     {
        vcos_log_error("Failed to create buffer header pool for encoder output port %s", encoder_output->name);
+       ROS_ERROR("Failed to create buffer header pool for encoder output port %s", encoder_output->name);
     }
  
     state->encoder_pool = pool;
@@ -648,6 +681,7 @@ static void signal_handler(int signal_number)
 {
    // Going to abort on all signals
    vcos_log_error("Aborting program\n");
+   ROS_ERROR("Aborting program\n");
 
    // TODO : Need to close any open stuff...how?
 
@@ -700,8 +734,8 @@ int init_cam(RASPIVID_STATE *state)
             ROS_INFO("%s: Failed to connect camera video port to encoder input", __func__);
 	    return 1;
       }
-      callback_data_enc->buffer[0] = (unsigned char *) malloc ( 1024 * 1024 );
-      callback_data_enc->buffer[1] = (unsigned char *) malloc ( 1024 * 1024 );
+      callback_data_enc->buffer[0] = (unsigned char *) malloc ( IMG_BUFFER_SIZE );
+      callback_data_enc->buffer[1] = (unsigned char *) malloc ( IMG_BUFFER_SIZE );
       // Set up our userdata - this is passed though to the callback where we need the information.
       callback_data_enc->pstate = state;
       callback_data_enc->abort = 0;
@@ -740,11 +774,15 @@ int start_capture(RASPIVID_STATE *state){
 	 	{
 	      	MMAL_BUFFER_HEADER_T *buffer = mmal_queue_get(state->encoder_pool->queue);
 
-	      	if (!buffer)
+	      	if (!buffer) {
 	        	vcos_log_error("Unable to get a required buffer %d from pool queue", q);
+	        	ROS_ERROR("Unable to get a required buffer %d from pool queue", q);
+	        }
 
-	       	if (mmal_port_send_buffer(encoder_output_port, buffer)!= MMAL_SUCCESS)
+	       	if (mmal_port_send_buffer(encoder_output_port, buffer)!= MMAL_SUCCESS) {
 	           	vcos_log_error("Unable to send a buffer to encoder output port (%d)", q);
+	           	ROS_ERROR("Unable to send a buffer to encoder output port (%d)", q);
+	        }
 
 	 	}
       	}
@@ -807,34 +845,89 @@ int close_cam(RASPIVID_STATE *state){
 }
 
 
-int main(int argc, char **argv) {
-    ros::init(argc, argv, "raspicam_node");
-    ros::NodeHandle n("~");
-   
-   std::string camera_info_url;
-   std::string camera_name;
+void reconfigure_callback(raspicam_node::CameraConfig &config, uint32_t level) {
+  ROS_INFO("Reconfigure Request: contrast %d, sharpness %d, brightness %d, saturation %d, ISO %d, exposureCompensation %d,"
+		   " videoStabilisation %d, vFlip %d, hFlip %d,"
+		   " zoom %.2f, exposure_mode %s, awb_mode %s",
+		    config.contrast, config.sharpness, config.brightness,
+			config.saturation, config.ISO, config.exposureCompensation, config.videoStabilisation,
+			config.vFlip, config.hFlip,
+            config.zoom,
+            config.exposure_mode.c_str(),
+			config.awb_mode.c_str());
 
-   n.param("camera_info_url", camera_info_url, std::string("package://raspicam/calibrations/camera.yaml"));
-   n.param("camera_name", camera_name, std::string("camera"));
-   ROS_INFO("Loading CameraInfo from %s", camera_info_url.c_str());
-   
-   camera_info_manager::CameraInfoManager c_info_man (n, camera_name, camera_info_url);
-   get_status(&state_srv);
+  if (!state_srv.camera_component) {
+	  ROS_WARN("camera_component not initialized");
+	  return;
+  }
 
-    if (!c_info_man.loadCameraInfo(camera_info_url)) {
-        ROS_INFO("Calibration file missing. Camera not calibrated");
-    } else {
-        c_info = c_info_man.getCameraInfo();
-        ROS_INFO("Camera successfully calibrated");
-    }
+  if (config.zoom < 1.0) {
+	  ROS_ERROR("Zoom value %f too small (must be at least 1.0)", config.zoom);
+  } else {
+	  const double size = 1.0 / config.zoom;
+	  const double offset = (1.0 - size) / 2.0;
+	  PARAM_FLOAT_RECT_T roi;
+	  roi.x = roi.y = offset;
+	  roi.w = roi.h = size;
+	  raspicamcontrol_set_ROI(state_srv.camera_component, roi);
+  }
 
-    image_pub = n.advertise<sensor_msgs::CompressedImage>("image/compressed", 1);
-    camera_info_pub = n.advertise<sensor_msgs::CameraInfo>("camera_info", 1);
+  raspicamcontrol_set_exposure_mode(state_srv.camera_component,
+		  exposure_mode_from_string(config.exposure_mode.c_str()));
 
-    start_capture(&state_srv);
-    ros::spin();
-    close_cam(&state_srv);
-    return 0;
+  raspicamcontrol_set_awb_mode(state_srv.camera_component,
+		  awb_mode_from_string(config.awb_mode.c_str()));
+
+  raspicamcontrol_set_contrast(state_srv.camera_component, config.contrast);
+  raspicamcontrol_set_sharpness(state_srv.camera_component, config.sharpness);
+  raspicamcontrol_set_brightness(state_srv.camera_component, config.brightness);
+  raspicamcontrol_set_saturation(state_srv.camera_component, config.saturation);
+  raspicamcontrol_set_ISO(state_srv.camera_component, config.ISO);
+  raspicamcontrol_set_exposure_compensation(state_srv.camera_component, config.exposureCompensation);
+  raspicamcontrol_set_video_stabilisation(state_srv.camera_component, config.videoStabilisation);
+  raspicamcontrol_set_flips(state_srv.camera_component, config.hFlip, config.vFlip);
+
+  ROS_INFO("Reconfigure done");
+}
+
+
+
+int main(int argc, char **argv){
+  ros::init(argc, argv, "raspicam_node");
+  ros::NodeHandle n("~");
+
+  n.param("skip_frames", skip_frames, 0);
+
+  std::string camera_info_url;
+  std::string camera_name;
+
+  n.param("camera_info_url", camera_info_url, std::string("package://raspicam_node/camera_info/camera.yaml"));
+  n.param("camera_name", camera_name, std::string("camera"));
+  ROS_INFO("Loading CameraInfo from %s", camera_info_url.c_str());
+
+  camera_info_manager::CameraInfoManager c_info_man (n, camera_name, camera_info_url);
+  //get_status(&state_srv);
+  init_cam(&state_srv); // will need to figure out how to handle start and stop with dynamic reconfigure
+
+  if (!c_info_man.loadCameraInfo(camera_info_url)) {
+      ROS_INFO("Calibration file missing. Camera not calibrated");
+  } else {
+      c_info = c_info_man.getCameraInfo();
+      ROS_INFO("Camera successfully calibrated");
+  }
+
+  image_pub = n.advertise<sensor_msgs::CompressedImage>("image/compressed", 1);
+  camera_info_pub = n.advertise<sensor_msgs::CameraInfo>("camera_info", 1);
+
+  dynamic_reconfigure::Server<raspicam_node::CameraConfig> server;
+  dynamic_reconfigure::Server<raspicam_node::CameraConfig>::CallbackType f;
+  f = boost::bind(&reconfigure_callback, _1, _2);
+  server.setCallback(f);
+
+  start_capture(&state_srv);
+  ros::spin();
+  close_cam(&state_srv);
+  return 0;
 }
 
 #endif // __arm__

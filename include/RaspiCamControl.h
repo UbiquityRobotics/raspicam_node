@@ -132,6 +132,8 @@ typedef struct
    int shutter_speed;         /// TODO : Range? 
 } RASPICAM_CAMERA_PARAMETERS;
 
+MMAL_PARAM_EXPOSUREMODE_T exposure_mode_from_string(const char *str);
+MMAL_PARAM_AWBMODE_T awb_mode_from_string(const char *str);
 
 void raspicamcontrol_check_configuration(int min_gpu_mem);
 

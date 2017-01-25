@@ -4,7 +4,13 @@ project(raspicam_node)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS compressed_image_transport roscpp std_msgs camera_info_manager)
+find_package(catkin REQUIRED COMPONENTS
+  compressed_image_transport
+  roscpp
+  std_msgs
+  camera_info_manager
+  dynamic_reconfigure
+)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -74,6 +80,12 @@ ENDIF()
 #   std_msgs
 # )
 
+#add dynamic reconfigure api
+generate_dynamic_reconfigure_options(
+  cfg/Camera.cfg
+)
+
+
 ###################################
 ## catkin specific configuration ##
 ###################################
@@ -118,6 +130,7 @@ add_executable(raspicam_node src/raspicam_node.cpp)
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 # add_dependencies(raspicam_node raspicam_generate_messages_cpp)
+add_dependencies(raspicam_node raspicam_node_gencfg)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(raspicam_node
