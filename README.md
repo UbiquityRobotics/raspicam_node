@@ -7,17 +7,26 @@ This node is primarily supported on ROS Kinetic, and Ubuntu 16.04, and that is w
 
 Go to your catkin_ws `cd ~/catkin_ws/src`.
 
-Download the source for this node `git clone https://github.com/UbiquityRobotics/raspicam_node.git`
+Download the source for this node by running
 
-Install the ros dependencies, `cd ~/catkin_ws; rosdep install --from-paths src --ignore-src --rosdistro=kinetic -y`
+`git clone https://github.com/UbiquityRobotics/raspicam_node.git`
 
-Update your pi firmware `rpi-update`.
+Install the ros dependencies, 
 
-Compile the code: `catkin_make`.
+```
+cd ~/catkin_ws
+rosdep install --from-paths src --ignore-src --rosdistro=kinetic -y
+```
+
+Update your pi firmware using`rpi-update`.
+
+Compile the code with `catkin_make`.
 
 ## Running the Node
 Once you have the node built, you can run it using a launch file.
+
 For a V2.x camera, run `roslaunch raspicam_node camerav2_1280x960.launch`
+
 For a V1.x camera, run `roslaunch raspicam_node camerav1_1280x720.launch`
 
 Use `rqt_image_view` to view the published image.
