@@ -32,9 +32,9 @@ For a V1.x camera, run `roslaunch raspicam_node camerav1_1280x720.launch`
 Use `rqt_image_view` to view the published image.
 
 ## Troubleshooting
-Make sure that your user is in the `video` group by running `groups|grep video`.
+1. Make sure that your user is in the `video` group by running `groups|grep video`.
 
-If you get an error saying: `Failed to create camera component`,
+2. If you get an error saying: `Failed to create camera component`,
 make sure that the camera cable is properly seated on both ends, and that the cable is not missing any pins. If this doesn't work update your firmware with `rpi-update`.
 
 ## Node Information
