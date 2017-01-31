@@ -90,3 +90,5 @@ A camera calibration can be run with the following commands:
     $ rosrun image_transport republish compressed in:=/raspicam_node/image raw out:=/raspicam_node/image
     $ rosrun camera_calibration cameracalibrator.py --size 8x6 --square 0.74 image:=/raspicam_node/image camera:=/raspicam_node
 
+By default the camera calibrations are saved in the 
+camera_info directory of this package.
