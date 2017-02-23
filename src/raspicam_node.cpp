@@ -886,6 +886,7 @@ void reconfigure_callback(raspicam_node::CameraConfig &config, uint32_t level) {
   raspicamcontrol_set_exposure_compensation(state_srv.camera_component, config.exposureCompensation);
   raspicamcontrol_set_video_stabilisation(state_srv.camera_component, config.videoStabilisation);
   raspicamcontrol_set_flips(state_srv.camera_component, config.hFlip, config.vFlip);
+  raspicamcontrol_set_shutter_speed(state_srv.camera_component, config.shutterSpeed);
 
   ROS_INFO("Reconfigure done");
 }
