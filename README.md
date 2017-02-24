@@ -18,8 +18,6 @@ cd ~/catkin_ws
 rosdep install --from-paths src --ignore-src --rosdistro=kinetic -y
 ```
 
-Update your pi firmware using`rpi-update`.
-
 Compile the code with `catkin_make`.
 
 ## Running the Node
