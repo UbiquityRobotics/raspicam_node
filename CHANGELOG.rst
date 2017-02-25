@@ -2,8 +2,8 @@
 Changelog for package raspicam
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.2.0 (2017-02-25)
+------------------
 * Add launch files and camera calibrations
 * Add documentation to get pi-deps
 * Proper dependancy declaration
