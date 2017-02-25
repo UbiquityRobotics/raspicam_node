@@ -4,10 +4,10 @@
   <version>0.1.0</version>
   <description>Package to access the Raspberry Pi Camera from ROS.</description>
 
-  <maintainer email="ra@ubiquityrobotics.com">Rohan Agrawal</maintainer>
+  <maintainer email="send2arohan@gmail.com">Rohan Agrawal</maintainer>
   <maintainer email="wayne@gramlich.net">Wayne Gramlich</maintainer>
 
-  <license>TODO</license>
+  <license>BSD</license>
 
   <buildtool_depend>catkin</buildtool_depend>
   <depend>compressed_image_transport</depend>
@@ -15,6 +15,8 @@
   <depend>std_msgs</depend>
   <depend>camera_info_manager</depend>
   <depend>dynamic_reconfigure</depend>
+  <depend>libraspberrypi0</depend>
+  <build_depend>libraspberrypi-dev</build_depend>
 
   <export>
   </export>
