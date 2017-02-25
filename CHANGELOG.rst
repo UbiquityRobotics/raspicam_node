@@ -2,6 +2,16 @@
 Changelog for package raspicam
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Add launch files and camera calibrations
+* Add documentation to get pi-deps
+* Proper dependancy declaration
+* Pull in all SV-ROS development
+* Dynamic reconfigure support
+* Support for both CameraV1 and V2
+* Contributors: Girts Linde, Jim Vaughan, Rohan Agrawal
+
 0.1.0 (2016-04-14)
 ------------------
 * Fixed link order bug
