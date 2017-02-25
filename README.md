@@ -11,6 +11,13 @@ Download the source for this node by running
 
 `git clone https://github.com/UbiquityRobotics/raspicam_node.git`
 
+There are some dependencies that are not recognized by ros, so you need to create the file `/etc/ros/rosdep/sources.list.d/30-ubiquity.list` and add this to it.
+```
+yaml https://raw.githubusercontent.com/UbiquityRobotics/rosdep/master/raspberry-pi.yaml
+```
+
+Then run `rosdep update`.
+
 Install the ros dependencies, 
 
 ```
