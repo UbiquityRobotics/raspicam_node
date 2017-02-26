@@ -13,6 +13,8 @@
   <depend>compressed_image_transport</depend>
   <depend>roscpp</depend>
   <depend>std_msgs</depend>
+  <depend>std_srvs</depend>
+  <depend>sensor_msgs</depend>
   <depend>camera_info_manager</depend>
   <depend>dynamic_reconfigure</depend>
   <depend>libraspberrypi0</depend>
