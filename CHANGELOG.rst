@@ -2,8 +2,8 @@
 Changelog for package raspicam
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.2.1 (2017-02-25)
+------------------
 * Dependency fixes
 * Contributors: Rohan Agrawal
 
