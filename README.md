@@ -36,7 +36,7 @@ For a V1.x camera, run `roslaunch raspicam_node camerav1_1280x720.launch`
 
 Use `rqt_image_view` to view the published image.
 
-## Configuring the node with dynamic recondigure
+## Configuring the node with dynamic reconfigure
 
 This section describes how to use a second computer to dynamically adjust the paramaters of the node.
 It assumes that the Raspberry PI on which the `raspicam_node` is running has a hostname of `raspi.local`
@@ -67,14 +67,14 @@ The changes can be made persistent by adding those two lines to `~/.bashrc`.
 export ROS_MASTER_URI=${ROS_HOSTNAME}:11311
 ```
 
-3. Run the dynamic reconfigure node on `laptop.local`.
+3. Run the dynamic reconfigure node on `laptop.local`:
 
 
 ```
 rosrun rqt_reconfigure rqt_reconfigure 
 ```
 
-It should bribg up a user interface like the one below.
+It should bring up a user interface like the one below.  Paramaters can be dynamically adjusted via this interface.
 
 ![rqt_reconfigure](reconfigure_raspicam_node.png)
 
