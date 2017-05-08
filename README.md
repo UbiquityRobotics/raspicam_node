@@ -42,8 +42,8 @@ This section describes how to use a second computer to dynamically adjust the pa
 It assumes that the Raspberry PI on which the `raspicam_node` is running has a hostname of `raspi.local`
 and that the reconfiguration is being run on a second computer with a hostname of `laptop.local`.
 
-1. Ensure that the environment variables on `raspi.local` are set correctly.  If they are contain the
-string `localhost`, then the computer is not set up to run ROS in a distributed manner.
+1. Ensure that the ROS environment variables on `raspi.local` are set so that other machines can interact
+with its ROS nodes.  If they varaiables contain the string `localhost`, they need to be changed.
 
 ```
 ubuntu@raspi:~$ echo $ROS_HOSTNAME 
