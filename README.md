@@ -36,6 +36,49 @@ For a V1.x camera, run `roslaunch raspicam_node camerav1_1280x720.launch`
 
 Use `rqt_image_view` to view the published image.
 
+## Configuring the node with dynamic reconfigure
+
+This section describes how to use a second computer to dynamically adjust the paramaters of the node.
+It assumes that the Raspberry PI on which the `raspicam_node` is running has a hostname of `raspi.local`
+and that the reconfiguration is being run on a second computer with a hostname of `laptop.local`.
+
+1. Ensure that the ROS environment variables on `raspi.local` are set so that other machines can interact
+with its ROS nodes.  If they varaiables contain the string `localhost`, they need to be changed.
+
+```
+ubuntu@raspi:~$ echo $ROS_HOSTNAME 
+raspi.local
+ubuntu@raspi:~$ echo $ROS_MASTER_URI 
+http://raspi.local:11311
+```
+
+If necessary they can be adjusted thus:
+
+```
+export ROS_HOSTNAME=`hostname`.local
+export ROS_MASTER_URI=${ROS_HOSTNAME}:11311
+```
+
+The changes can be made persistent by adding those two lines to `~/.bashrc`.
+
+2. One the laptop, set the environment variable `ROS_MASTER_URI` as above:
+
+```
+export ROS_MASTER_URI=${ROS_HOSTNAME}:11311
+```
+
+3. Run the dynamic reconfigure node on `laptop.local`:
+
+
+```
+rosrun rqt_reconfigure rqt_reconfigure 
+```
+
+It should bring up a user interface like the one below.  Paramaters can be dynamically adjusted via this interface.
+
+![rqt_reconfigure](reconfigure_raspicam_node.png)
+
+
 ## Troubleshooting
 1. Make sure that your user is in the `video` group by running `groups|grep video`.
 
