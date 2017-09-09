@@ -85,6 +85,8 @@ It should bring up a user interface like the one below.  Paramaters can be dynam
 2. If you get an error saying: `Failed to create camera component`,
 make sure that the camera cable is properly seated on both ends, and that the cable is not missing any pins. If this doesn't work update your firmware with `rpi-update`.
 
+3. If the publish rate of the image over the network is lower than expected, consider using a lower resolution to reduce the amount of bandwidth required.
+
 ## Node Information
 
 Topics:
