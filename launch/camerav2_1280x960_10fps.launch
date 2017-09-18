@@ -5,9 +5,8 @@
     <param name="width" value="1280"/>
     <param name="height" value="960"/>
 
-    <!-- Use low frame rate, but low shutter speed-->
     <param name="framerate" value="10"/>
-    <param name="shutter_speed" value="11000"/>
+    <param name="exposure_mode" value="antishake"/>
 
     <param name="camera_frame_id" value="raspicam"/>
 
