@@ -2,8 +2,8 @@
 Changelog for package raspicam
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.2.2 (2017-11-19)
+------------------
 * add proper includes to header RaspiCamControl
 * applied clang format
 * Add low res mode for tracking
