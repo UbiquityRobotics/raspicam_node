@@ -2,6 +2,15 @@
 Changelog for package raspicam
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* add proper includes to header RaspiCamControl
+* applied clang format
+* Add low res mode for tracking
+* Add note about publish rate over the network.
+* Add note about dynamic reconfigure
+* Contributors: Jan Koniarik, Jim Vaughan, Rohan Agrawal, davecrawley
+
 0.2.1 (2017-02-25)
 ------------------
 * Dependency fixes
