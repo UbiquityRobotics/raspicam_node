@@ -3,7 +3,7 @@
 ROS node for the Raspberry Pi Camera Module. Works with both the V1.x and V2.x versions of the module. We recommend using the v2.x cameras as they have better auto gain, and the general image quality is better. 
 
 ## Build Intructions
-This node is primarily supported on ROS Kinetic, and Ubuntu 16.04, and that is what these instuctions presume.
+This node is primarily supported on ROS Kinetic, and Ubuntu 16.04, and that is what these instuctions presume.  If your base ros installation was on `ros_comm`, as the ROS wiki suggests for running ros on a Raspberry Pi, you may have to fullfil some additional dependencies (see below).
 
 Go to your catkin_ws `cd ~/catkin_ws/src`.
 
@@ -26,6 +26,20 @@ rosdep install --from-paths src --ignore-src --rosdistro=kinetic -y
 ```
 
 Compile the code with `catkin_make`.
+
+### Installation on ros_comm
+You will need `compressed_image_transport`, `camera_info_manager`, and `dynamic_reconfigure` packages.  In `~/ros-catkin-ws`, run:
+
+```
+rosinstall_generator compressed_image_transport --rosdistro kinetic --deps --wet-only --tar > kinetic-compressed_image_transport-wet.rosinstall
+rosinstall_generator camera_info_manager --rosdistro kinetic --deps --wet-only --tar > kinetic-camera_info_manager-wet.rosinstall
+rosinstall_generator dynamic_reconfigure --rosdistro kinetic --deps --wet-only --tar > kinetic-dynamic_reconfigure-wet.rosinstall
+wstool merge -t src kinetic-compressed_image_transport-wet.rosinstall
+wstool merge -t src kinetic-camera_info_manager-wet.rosinstall
+wstool merge -t src kinetic-dynamic_reconfigure-wet.rosinstall
+wstool update -t src
+```
+Then rebuild ROS.  Then you may proceed through installation as instructed above.  For more detailed notes see [this blogpost](http://www.venelinpetkov.com/how-to-install-a-raspberry-camera-node-on-ros-kinetic-raspbian-stretch/).
 
 ## Running the Node
 Once you have the node built, you can run it using a launch file.
