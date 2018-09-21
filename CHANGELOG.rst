@@ -2,8 +2,8 @@
 Changelog for package raspicam
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.2.3 (2018-09-20)
+------------------
 * new calibration parameters
 * Contributors: Rohan Agrawal
 
