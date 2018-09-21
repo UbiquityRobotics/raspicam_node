@@ -2,6 +2,11 @@
 Changelog for package raspicam
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* new calibration parameters
+* Contributors: Rohan Agrawal
+
 0.2.2 (2017-11-19)
 ------------------
 * add proper includes to header RaspiCamControl
