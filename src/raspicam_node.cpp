@@ -906,7 +906,7 @@ int main(int argc, char **argv) {
         ROS_INFO("Camera successfully calibrated from default file");
     }
 
-    if (!c_info_man.loadCameraInfo()) {
+    if (!c_info_man.loadCameraInfo("")) {
         ROS_INFO("No device specifc calibration found");
     } else {
         c_info = c_info_man.getCameraInfo();
