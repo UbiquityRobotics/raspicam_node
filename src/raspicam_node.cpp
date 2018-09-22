@@ -894,6 +894,7 @@ int main(int argc, char **argv) {
 
     camera_info_manager::CameraInfoManager c_info_man(n, camera_name,
                                                       camera_info_url);
+
     // get_status(&state_srv);
     init_cam(&state_srv);  // will need to figure out how to handle start and
                            // stop with dynamic reconfigure
@@ -902,7 +903,14 @@ int main(int argc, char **argv) {
         ROS_INFO("Calibration file missing. Camera not calibrated");
     } else {
         c_info = c_info_man.getCameraInfo();
-        ROS_INFO("Camera successfully calibrated");
+        ROS_INFO("Camera successfully calibrated from default file");
+    }
+
+    if (!c_info_man.loadCameraInfo()) {
+        ROS_INFO("No device specifc calibration found");
+    } else {
+        c_info = c_info_man.getCameraInfo();
+        ROS_INFO("Camera successfully calibrated from device specifc file");
     }
 
     image_pub =
