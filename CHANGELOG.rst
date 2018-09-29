@@ -2,8 +2,8 @@
 Changelog for package raspicam
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.3.0 (2018-09-28)
+------------------
 * use user writeable calibration after the package one
 * set camera name everywhere
 * Contributors: Rohan Agrawal
