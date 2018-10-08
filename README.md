@@ -138,7 +138,7 @@ square size in millimeters and convert to meters by dividing by 1000.
 A camera calibration can be run with the following commands:
 
     $ rosrun image_transport republish compressed in:=/raspicam_node/image raw out:=/raspicam_node/image
-    $ rosrun camera_calibration cameracalibrator.py --size 8x6 --square 0.74 image:=/raspicam_node/image camera:=/raspicam_node
+    $ rosrun camera_calibration cameracalibrator.py --size 8x6 --square 0.074 image:=/raspicam_node/image camera:=/raspicam_node
     
 See http://wiki.ros.org/camera_calibration/Tutorials/MonocularCalibration for a guide on calibration
 
