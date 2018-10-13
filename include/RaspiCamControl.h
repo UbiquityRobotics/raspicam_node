@@ -93,21 +93,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 // There isn't actually a MMAL structure for the following, so make one
-typedef struct
-{
+typedef struct {
   int enable;  /// Turn colourFX on or off
   int u, v;    /// U and V to use
 } MMAL_PARAM_COLOURFX_T;
 
-typedef struct
-{
+typedef struct {
   int enable;
   int width, height;
   int quality;
 } MMAL_PARAM_THUMBNAIL_CONFIG_T;
 
-typedef struct
-{
+typedef struct {
   double x;
   double y;
   double w;
@@ -115,8 +112,7 @@ typedef struct
 } PARAM_FLOAT_RECT_T;
 
 /// struct contain camera settings
-typedef struct
-{
+typedef struct {
   int sharpness;             /// -100 to 100
   int contrast;              /// -100 to 100
   int brightness;            ///  0 to 100
