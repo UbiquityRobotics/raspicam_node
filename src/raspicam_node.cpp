@@ -65,8 +65,10 @@ int main(int argc, char** argv) {
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#define VCOS_ALWAYS_WANT_LOGGING
 
+#include <memory>
+
+#define VCOS_ALWAYS_WANT_LOGGING
 #define VERSION_STRING "v1.2"
 
 #include "bcm_host.h"
@@ -92,7 +94,6 @@ int main(int argc, char** argv) {
 #include <dynamic_reconfigure/server.h>
 #include <raspicam_node/CameraConfig.h>
 
-#include <semaphore.h>
 
 const int IMG_BUFFER_SIZE = 10 * 1024 * 1024;
 /// Camera number to use - we only have one camera, indexed from 0.
@@ -134,7 +135,6 @@ typedef struct {
                               /// output port
   MMAL_POOL_T* encoder_pool;  /// Pointer to the pool of buffers used by
                               /// encoder output port
-  ros::Publisher* image_pub;
 } RASPIVID_STATE;
 
 RASPIVID_STATE state_srv;
@@ -150,15 +150,12 @@ int frames_skipped = 0;
  */
 typedef struct {
   unsigned char* buffer[2];  /// File handle to write buffer data to.
-  RASPIVID_STATE
-  *pstate;    /// pointer to our state in case required in callback
+  RASPIVID_STATE *pstate;    /// pointer to our state for use by callback
   int abort;  /// Set to 1 in callback if an error occurs to attempt to abort
               /// the capture
   int frame;
   int id;
 } PORT_USERDATA;
-
-static void display_valid_parameters(char* app_name);
 
 /**
  * Assign a default set of parameters to the state passed in
@@ -352,7 +349,7 @@ static void encoder_buffer_callback(MMAL_PORT_T* port, MMAL_BUFFER_HEADER_T* buf
 static MMAL_COMPONENT_T* create_camera_component(RASPIVID_STATE* state) {
   MMAL_COMPONENT_T* camera = 0;
   MMAL_ES_FORMAT_T* format;
-  MMAL_PORT_T *preview_port = NULL, *video_port = NULL, *still_port = NULL;
+  MMAL_PORT_T *preview_port = nullptr, *video_port = nullptr, *still_port = nullptr;
   MMAL_STATUS_T status;
 
   /* Create the component */
@@ -484,7 +481,7 @@ error:
 static void destroy_camera_component(RASPIVID_STATE* state) {
   if (state->camera_component) {
     mmal_component_destroy(state->camera_component);
-    state->camera_component = NULL;
+    state->camera_component = nullptr;
   }
 }
 
@@ -498,7 +495,7 @@ static void destroy_camera_component(RASPIVID_STATE* state) {
  */
 static MMAL_STATUS_T create_encoder_component(RASPIVID_STATE* state) {
   MMAL_COMPONENT_T* encoder = 0;
-  MMAL_PORT_T *encoder_input = NULL, *encoder_output = NULL;
+  MMAL_PORT_T *encoder_input = nullptr, *encoder_output = nullptr;
   MMAL_STATUS_T status;
   MMAL_POOL_T* pool;
 
@@ -599,7 +596,7 @@ static void destroy_encoder_component(RASPIVID_STATE* state) {
 
   if (state->encoder_component) {
     mmal_component_destroy(state->encoder_component);
-    state->encoder_component = NULL;
+    state->encoder_component = nullptr;
   }
 }
 
@@ -662,11 +659,11 @@ static void signal_handler(int signal_number) {
 int init_cam(RASPIVID_STATE* state) {
   // Our main data storage vessel..
   MMAL_STATUS_T status;
-  MMAL_PORT_T* camera_video_port = NULL;
-  MMAL_PORT_T* camera_still_port = NULL;
-  MMAL_PORT_T* preview_input_port = NULL;
-  MMAL_PORT_T* encoder_input_port = NULL;
-  MMAL_PORT_T* encoder_output_port = NULL;
+  MMAL_PORT_T* camera_video_port = nullptr;
+  MMAL_PORT_T* camera_still_port = nullptr;
+  MMAL_PORT_T* preview_input_port = nullptr;
+  MMAL_PORT_T* encoder_input_port = nullptr;
+  MMAL_PORT_T* encoder_output_port = nullptr;
 
   bcm_host_init();
   get_status(state);
@@ -782,12 +779,12 @@ int close_cam(RASPIVID_STATE* state) {
 
     if (encoder) {
       mmal_component_destroy(encoder);
-      encoder = NULL;
+      encoder = nullptr;
     }
     // destroy camera component
     if (camera) {
       mmal_component_destroy(camera);
-      camera = NULL;
+      camera = nullptr;
     }
     ROS_INFO("Video capture stopped\n");
     return 0;
