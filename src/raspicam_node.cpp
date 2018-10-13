@@ -137,7 +137,6 @@ typedef struct {
                               /// encoder output port
 } RASPIVID_STATE;
 
-RASPIVID_STATE state_srv;
 ros::Publisher image_pub;
 ros::Publisher camera_info_pub;
 sensor_msgs::CameraInfo c_info;
@@ -792,7 +791,7 @@ int close_cam(RASPIVID_STATE* state) {
     return 1;
 }
 
-void reconfigure_callback(raspicam_node::CameraConfig& config, uint32_t level) {
+void reconfigure_callback(raspicam_node::CameraConfig& config, uint32_t level, RASPIVID_STATE& state) {
   ROS_INFO("Reconfigure Request: contrast %d, sharpness %d, brightness %d, "
            "saturation %d, ISO %d, exposureCompensation %d,"
            " videoStabilisation %d, vFlip %d, hFlip %d,"
@@ -801,7 +800,7 @@ void reconfigure_callback(raspicam_node::CameraConfig& config, uint32_t level) {
            config.exposureCompensation, config.videoStabilisation, config.vFlip, config.hFlip, config.zoom,
            config.exposure_mode.c_str(), config.awb_mode.c_str());
 
-  if (!state_srv.camera_component) {
+  if (!state.camera_component) {
     ROS_WARN("camera_component not initialized");
     return;
   }
@@ -814,23 +813,23 @@ void reconfigure_callback(raspicam_node::CameraConfig& config, uint32_t level) {
     PARAM_FLOAT_RECT_T roi;
     roi.x = roi.y = offset;
     roi.w = roi.h = size;
-    raspicamcontrol_set_ROI(state_srv.camera_component, roi);
+    raspicamcontrol_set_ROI(state.camera_component, roi);
   }
 
-  raspicamcontrol_set_exposure_mode(state_srv.camera_component,
+  raspicamcontrol_set_exposure_mode(state.camera_component,
                                     exposure_mode_from_string(config.exposure_mode.c_str()));
 
-  raspicamcontrol_set_awb_mode(state_srv.camera_component, awb_mode_from_string(config.awb_mode.c_str()));
+  raspicamcontrol_set_awb_mode(state.camera_component, awb_mode_from_string(config.awb_mode.c_str()));
 
-  raspicamcontrol_set_contrast(state_srv.camera_component, config.contrast);
-  raspicamcontrol_set_sharpness(state_srv.camera_component, config.sharpness);
-  raspicamcontrol_set_brightness(state_srv.camera_component, config.brightness);
-  raspicamcontrol_set_saturation(state_srv.camera_component, config.saturation);
-  raspicamcontrol_set_ISO(state_srv.camera_component, config.ISO);
-  raspicamcontrol_set_exposure_compensation(state_srv.camera_component, config.exposureCompensation);
-  raspicamcontrol_set_video_stabilisation(state_srv.camera_component, config.videoStabilisation);
-  raspicamcontrol_set_flips(state_srv.camera_component, config.hFlip, config.vFlip);
-  raspicamcontrol_set_shutter_speed(state_srv.camera_component, config.shutterSpeed);
+  raspicamcontrol_set_contrast(state.camera_component, config.contrast);
+  raspicamcontrol_set_sharpness(state.camera_component, config.sharpness);
+  raspicamcontrol_set_brightness(state.camera_component, config.brightness);
+  raspicamcontrol_set_saturation(state.camera_component, config.saturation);
+  raspicamcontrol_set_ISO(state.camera_component, config.ISO);
+  raspicamcontrol_set_exposure_compensation(state.camera_component, config.exposureCompensation);
+  raspicamcontrol_set_video_stabilisation(state.camera_component, config.videoStabilisation);
+  raspicamcontrol_set_flips(state.camera_component, config.hFlip, config.vFlip);
+  raspicamcontrol_set_shutter_speed(state.camera_component, config.shutterSpeed);
 
   ROS_INFO("Reconfigure done");
 }
@@ -850,7 +849,8 @@ int main(int argc, char** argv) {
 
   camera_info_manager::CameraInfoManager c_info_man(n, camera_name, camera_info_url);
 
-  // get_status(&state_srv);
+  RASPIVID_STATE state_srv;
+
   init_cam(&state_srv);  // will need to figure out how to handle start and
                          // stop with dynamic reconfigure
 
@@ -873,7 +873,7 @@ int main(int argc, char** argv) {
 
   dynamic_reconfigure::Server<raspicam_node::CameraConfig> server;
   dynamic_reconfigure::Server<raspicam_node::CameraConfig>::CallbackType f;
-  f = boost::bind(&reconfigure_callback, _1, _2);
+  f = boost::bind(&reconfigure_callback, _1, _2, state_srv);
   server.setCallback(f);
 
   start_capture(&state_srv);
