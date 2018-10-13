@@ -29,18 +29,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef RASPICLI_H_
 #define RASPICLI_H_
 
-typedef struct {
-    int id;
-    char const *command;
-    char const *abbrev;
-    char const *help;
-    int num_parameters;
+typedef struct
+{
+  int id;
+  char const* command;
+  char const* abbrev;
+  char const* help;
+  int num_parameters;
 } COMMAND_LIST;
 
-void raspicli_display_help(const COMMAND_LIST *commands,
-                           const int num_commands);
-int raspicli_get_command_id(const COMMAND_LIST *commands,
-                            const int num_commands, const char *arg,
-                            int *num_parameters);
+void raspicli_display_help(const COMMAND_LIST* commands, const int num_commands);
+int raspicli_get_command_id(const COMMAND_LIST* commands, const int num_commands, const char* arg, int* num_parameters);
 
 #endif
