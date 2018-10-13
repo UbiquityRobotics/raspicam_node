@@ -418,25 +418,25 @@ static MMAL_PARAM_EXPOSUREMETERINGMODE_T metering_mode_from_string(const char* s
  * Dump contents of camera parameter structure to stdout for debugging/verbose
  * logging
  *
- * @param params Const pointer to parameters structure to dump
+ * @param params Const ref to parameters structure to dump
  */
-void raspicamcontrol_dump_parameters(const RASPICAM_CAMERA_PARAMETERS* params) {
-  const char* exp_mode = unmap_xref(params->exposureMode, exposure_map, exposure_map_size);
-  const char* awb_mode = unmap_xref(params->awbMode, awb_map, awb_map_size);
-  const char* image_effect = unmap_xref(params->imageEffect, imagefx_map, imagefx_map_size);
-  const char* metering_mode = unmap_xref(params->exposureMeterMode, metering_mode_map, metering_mode_map_size);
+void raspicamcontrol_dump_parameters(const RASPICAM_CAMERA_PARAMETERS& params){
+  const char* exp_mode = unmap_xref(params.exposureMode, exposure_map, exposure_map_size);
+  const char* awb_mode = unmap_xref(params.awbMode, awb_map, awb_map_size);
+  const char* image_effect = unmap_xref(params.imageEffect, imagefx_map, imagefx_map_size);
+  const char* metering_mode = unmap_xref(params.exposureMeterMode, metering_mode_map, metering_mode_map_size);
 
-  fprintf(stderr, "Sharpness %d, Contrast %d, Brightness %d\n", params->sharpness, params->contrast,
-          params->brightness);
+  fprintf(stderr, "Sharpness %d, Contrast %d, Brightness %d\n", params.sharpness, params.contrast,
+          params.brightness);
   fprintf(stderr, "Saturation %d, ISO %d, Video Stabilisation %s, Exposure "
                   "compensation %d\n",
-          params->saturation, params->ISO, params->videoStabilisation ? "Yes" : "No", params->exposureCompensation);
+          params.saturation, params.ISO, params.videoStabilisation ? "Yes" : "No", params.exposureCompensation);
   fprintf(stderr, "Exposure Mode '%s', AWB Mode '%s', Image Effect '%s'\n", exp_mode, awb_mode, image_effect);
   fprintf(stderr, "Metering Mode '%s', Colour Effect Enabled %s with U = %d, V = %d\n", metering_mode,
-          params->colourEffects.enable ? "Yes" : "No", params->colourEffects.u, params->colourEffects.v);
-  fprintf(stderr, "Rotation %d, hflip %s, vflip %s\n", params->rotation, params->hflip ? "Yes" : "No",
-          params->vflip ? "Yes" : "No");
-  fprintf(stderr, "ROI x %lf, y %f, w %f h %f\n", params->roi.x, params->roi.y, params->roi.w, params->roi.h);
+          params.colourEffects.enable ? "Yes" : "No", params.colourEffects.u, params.colourEffects.v);
+  fprintf(stderr, "Rotation %d, hflip %s, vflip %s\n", params.rotation, params.hflip ? "Yes" : "No",
+          params.vflip ? "Yes" : "No");
+  fprintf(stderr, "ROI x %lf, y %f, w %f h %f\n", params.roi.x, params.roi.y, params.roi.w, params.roi.h);
 }
 
 /**
@@ -509,90 +509,56 @@ int mmal_status_to_int(MMAL_STATUS_T status) {
  * Give the supplied parameter block a set of default values
  * @params Pointer to parameter block
  */
-void raspicamcontrol_set_defaults(RASPICAM_CAMERA_PARAMETERS* params) {
-  vcos_assert(params);
-
-  params->sharpness = 0;
-  params->contrast = 0;
-  params->brightness = 50;
-  params->saturation = 0;
-  params->ISO = 400;
-  params->videoStabilisation = 0;
-  params->exposureCompensation = 0;
-  params->exposureMode = MMAL_PARAM_EXPOSUREMODE_AUTO;
-  params->exposureMeterMode = MMAL_PARAM_EXPOSUREMETERINGMODE_AVERAGE;
-  params->awbMode = MMAL_PARAM_AWBMODE_AUTO;
-  // params->imageEffect = MMAL_PARAM_IMAGEFX_SATURATION;
-  params->imageEffect = MMAL_PARAM_IMAGEFX_NONE;
-  params->colourEffects.enable = 0;
-  params->colourEffects.u = 128;
-  params->colourEffects.v = 128;
-  params->rotation = 0;
-  params->hflip = params->vflip = 0;
-  params->roi.x = params->roi.y = 0.0;
-  params->roi.w = params->roi.h = 1.0;
-  params->shutter_speed = 0;  // automatic
-}
-
-/**
- * Get all the current camera parameters from specified camera component
- * @param camera Pointer to camera component
- * @param params Pointer to parameter block to accept settings
- * @return 0 if successful, non-zero if unsuccessful
- */
-int raspicamcontrol_get_all_parameters(MMAL_COMPONENT_T* camera, RASPICAM_CAMERA_PARAMETERS* params) {
-  vcos_assert(camera);
-  vcos_assert(params);
-
-  if (!camera || !params)
-    return 1;
-
-  /* TODO : Write these get functions
-     params->sharpness = raspicamcontrol_get_sharpness(camera);
-     params->contrast = raspicamcontrol_get_contrast(camera);
-     params->brightness = raspicamcontrol_get_brightness(camera);
-     params->saturation = raspicamcontrol_get_saturation(camera);
-     params->ISO = raspicamcontrol_get_ISO(camera);
-     params->videoStabilisation =
-     raspicamcontrol_get_video_stabilisation(camera);
-     params->exposureCompensation =
-     raspicamcontrol_get_exposure_compensation(camera); params->exposureMode =
-     raspicamcontrol_get_exposure_mode(camera); params->awbMode =
-     raspicamcontrol_get_awb_mode(camera); params->imageEffect =
-     raspicamcontrol_get_image_effect(camera); params->colourEffects =
-     raspicamcontrol_get_colour_effect(camera); params->thumbnailConfig =
-     raspicamcontrol_get_thumbnail_config(camera);
-  */
-  return 0;
+void raspicamcontrol_set_defaults(RASPICAM_CAMERA_PARAMETERS& params) {
+  params.sharpness = 0;
+  params.contrast = 0;
+  params.brightness = 50;
+  params.saturation = 0;
+  params.ISO = 400;
+  params.videoStabilisation = 0;
+  params.exposureCompensation = 0;
+  params.exposureMode = MMAL_PARAM_EXPOSUREMODE_AUTO;
+  params.exposureMeterMode = MMAL_PARAM_EXPOSUREMETERINGMODE_AVERAGE;
+  params.awbMode = MMAL_PARAM_AWBMODE_AUTO;
+  // params.imageEffect = MMAL_PARAM_IMAGEFX_SATURATION;
+  params.imageEffect = MMAL_PARAM_IMAGEFX_NONE;
+  params.colourEffects.enable = 0;
+  params.colourEffects.u = 128;
+  params.colourEffects.v = 128;
+  params.rotation = 0;
+  params.hflip = params.vflip = 0;
+  params.roi.x = params.roi.y = 0.0;
+  params.roi.w = params.roi.h = 1.0;
+  params.shutter_speed = 0;  // automatic
 }
 
 /**
  * Set the specified camera to all the specified settings
  * @param camera Pointer to camera component
- * @param params Pointer to parameter block containing parameters
+ * @param params refrence to parameter block containing parameters
  * @return 0 if successful, none-zero if unsuccessful.
  */
-int raspicamcontrol_set_all_parameters(MMAL_COMPONENT_T* camera, const RASPICAM_CAMERA_PARAMETERS* params) {
+int raspicamcontrol_set_all_parameters(MMAL_COMPONENT_T* camera, const RASPICAM_CAMERA_PARAMETERS& params) {
   int result;
 
-  result = raspicamcontrol_set_saturation(camera, params->saturation);
-  result += raspicamcontrol_set_sharpness(camera, params->sharpness);
-  result += raspicamcontrol_set_contrast(camera, params->contrast);
-  result += raspicamcontrol_set_brightness(camera, params->brightness);
-  result += raspicamcontrol_set_ISO(camera, params->ISO);
-  result += raspicamcontrol_set_video_stabilisation(camera, params->videoStabilisation);
-  result += raspicamcontrol_set_exposure_compensation(camera, params->exposureCompensation);
-  result += raspicamcontrol_set_exposure_mode(camera, params->exposureMode);
-  result += raspicamcontrol_set_metering_mode(camera, params->exposureMeterMode);
-  result += raspicamcontrol_set_awb_mode(camera, params->awbMode);
-  result += raspicamcontrol_set_imageFX(camera, params->imageEffect);
-  result += raspicamcontrol_set_colourFX(camera, &params->colourEffects);
+  result = raspicamcontrol_set_saturation(camera, params.saturation);
+  result += raspicamcontrol_set_sharpness(camera, params.sharpness);
+  result += raspicamcontrol_set_contrast(camera, params.contrast);
+  result += raspicamcontrol_set_brightness(camera, params.brightness);
+  result += raspicamcontrol_set_ISO(camera, params.ISO);
+  result += raspicamcontrol_set_video_stabilisation(camera, params.videoStabilisation);
+  result += raspicamcontrol_set_exposure_compensation(camera, params.exposureCompensation);
+  result += raspicamcontrol_set_exposure_mode(camera, params.exposureMode);
+  result += raspicamcontrol_set_metering_mode(camera, params.exposureMeterMode);
+  result += raspicamcontrol_set_awb_mode(camera, params.awbMode);
+  result += raspicamcontrol_set_imageFX(camera, params.imageEffect);
+  result += raspicamcontrol_set_colourFX(camera, &params.colourEffects);
   // result += raspicamcontrol_set_thumbnail_parameters(camera,
-  // &params->thumbnailConfig);  TODO Not working for some reason
-  result += raspicamcontrol_set_rotation(camera, params->rotation);
-  result += raspicamcontrol_set_flips(camera, params->hflip, params->vflip);
-  result += raspicamcontrol_set_ROI(camera, params->roi);
-  result += raspicamcontrol_set_shutter_speed(camera, params->shutter_speed);
+  // &params.thumbnailConfig);  TODO Not working for some reason
+  result += raspicamcontrol_set_rotation(camera, params.rotation);
+  result += raspicamcontrol_set_flips(camera, params.hflip, params.vflip);
+  result += raspicamcontrol_set_ROI(camera, params.roi);
+  result += raspicamcontrol_set_shutter_speed(camera, params.shutter_speed);
   return result;
 }
 

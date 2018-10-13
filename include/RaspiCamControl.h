@@ -139,15 +139,12 @@ MMAL_PARAM_AWBMODE_T awb_mode_from_string(const char* str);
 
 void raspicamcontrol_check_configuration(int min_gpu_mem);
 
-int raspicamcontrol_parse_cmdline(RASPICAM_CAMERA_PARAMETERS* params, const char* arg1, const char* arg2);
-void raspicamcontrol_display_help();
 int raspicamcontrol_cycle_test(MMAL_COMPONENT_T* camera);
 
-int raspicamcontrol_set_all_parameters(MMAL_COMPONENT_T* camera, const RASPICAM_CAMERA_PARAMETERS* params);
-int raspicamcontrol_get_all_parameters(MMAL_COMPONENT_T* camera, RASPICAM_CAMERA_PARAMETERS* params);
-void raspicamcontrol_dump_parameters(const RASPICAM_CAMERA_PARAMETERS* params);
+int raspicamcontrol_set_all_parameters(MMAL_COMPONENT_T* camera, const RASPICAM_CAMERA_PARAMETERS& params);
+void raspicamcontrol_dump_parameters(const RASPICAM_CAMERA_PARAMETERS& params);
 
-void raspicamcontrol_set_defaults(RASPICAM_CAMERA_PARAMETERS* params);
+void raspicamcontrol_set_defaults(RASPICAM_CAMERA_PARAMETERS& params);
 
 void raspicamcontrol_check_configuration(int min_gpu_mem);
 

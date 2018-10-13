@@ -125,11 +125,9 @@ typedef struct {
   RASPICAM_CAMERA_PARAMETERS camera_parameters;  /// Camera setup parameters
 
   MMAL_COMPONENT_T* camera_component;     /// Pointer to the camera component
-  MMAL_COMPONENT_T* encoder_component;    /// Pointer to the encoder component
-  MMAL_CONNECTION_T* preview_connection;  /// Pointer to the connection from
-                                          /// camera to preview
-  MMAL_CONNECTION_T* encoder_connection;  /// Pointer to the connection from
-                                          /// camera to encoder
+  MMAL_COMPONENT_T* encoder_component; 
+  MMAL_CONNECTION_T* preview_connection;  /// Pointer to camera => preview
+  MMAL_CONNECTION_T* encoder_connection;  /// Pointer to camera => encoder
 
   MMAL_POOL_T* video_pool;    /// Pointer to the pool of buffers used by encoder
                               /// output port
@@ -223,7 +221,7 @@ static void get_status(RASPIVID_STATE& state) {
   // raspipreview_set_defaults(&state->preview_parameters);
 
   // Set up the camera_parameters to default
-  raspicamcontrol_set_defaults(&state.camera_parameters);
+  raspicamcontrol_set_defaults(state.camera_parameters);
 
   if (ros::param::get("~hFlip", temp_bool)) {
    state.camera_parameters.hflip = temp_bool;
@@ -451,7 +449,7 @@ static MMAL_COMPONENT_T* create_camera_component(RASPIVID_STATE& state) {
     goto error;
   }
 
-  raspicamcontrol_set_all_parameters(camera, &state.camera_parameters);
+  raspicamcontrol_set_all_parameters(camera, state.camera_parameters);
 
   state.camera_component = camera;
 
