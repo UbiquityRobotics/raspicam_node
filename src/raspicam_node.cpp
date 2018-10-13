@@ -94,6 +94,7 @@ int main(int argc, char** argv) {
 #include <dynamic_reconfigure/server.h>
 #include <raspicam_node/CameraConfig.h>
 
+#include "mmal_cxx_helper.h"
 
 const int IMG_BUFFER_SIZE = 10 * 1024 * 1024;
 /// Camera number to use - we only have one camera, indexed from 0.
@@ -115,7 +116,13 @@ int mmal_status_to_int(MMAL_STATUS_T status);
 
 /** Structure containing all state information for the current run
  */
-typedef struct {
+struct RASPIVID_STATE {
+  RASPIVID_STATE()
+    : camera_component(nullptr, mmal::component_destroy_v)
+    , encoder_component(nullptr, mmal::component_destroy_v)
+    , preview_connection(nullptr, mmal::connection_destroy_v)
+    , encoder_connection(nullptr, mmal::connection_destroy_v){};
+
   int isInit;
   int width;      /// Requested width of image
   int height;     /// requested height of image
@@ -124,16 +131,16 @@ typedef struct {
 
   RASPICAM_CAMERA_PARAMETERS camera_parameters;  /// Camera setup parameters
 
-  MMAL_COMPONENT_T* camera_component;     /// Pointer to the camera component
-  MMAL_COMPONENT_T* encoder_component; 
-  MMAL_CONNECTION_T* preview_connection;  /// Pointer to camera => preview
-  MMAL_CONNECTION_T* encoder_connection;  /// Pointer to camera => encoder
+  mmal::component_ptr camera_component;
+  mmal::component_ptr encoder_component;
+  mmal::connection_ptr preview_connection;  /// Pointer to camera => preview
+  mmal::connection_ptr encoder_connection;  /// Pointer to camera => encoder
 
   MMAL_POOL_T* video_pool;    /// Pointer to the pool of buffers used by encoder
                               /// output port
   MMAL_POOL_T* encoder_pool;  /// Pointer to the pool of buffers used by
                               /// encoder output port
-} RASPIVID_STATE;
+};
 
 ros::Publisher image_pub;
 ros::Publisher camera_info_pub;
@@ -147,9 +154,9 @@ int frames_skipped = 0;
  */
 typedef struct {
   unsigned char* buffer[2];  /// File handle to write buffer data to.
-  RASPIVID_STATE *pstate;    /// pointer to our state for use by callback
-  int abort;  /// Set to 1 in callback if an error occurs to attempt to abort
-              /// the capture
+  RASPIVID_STATE* pstate;    /// pointer to our state for use by callback
+  int abort;                 /// Set to 1 in callback if an error occurs to attempt to abort
+                             /// the capture
   int frame;
   int id;
 } PORT_USERDATA;
@@ -224,23 +231,23 @@ static void get_status(RASPIVID_STATE& state) {
   raspicamcontrol_set_defaults(state.camera_parameters);
 
   if (ros::param::get("~hFlip", temp_bool)) {
-   state.camera_parameters.hflip = temp_bool;
+    state.camera_parameters.hflip = temp_bool;
   } else {
-   state.camera_parameters.hflip = 0;
+    state.camera_parameters.hflip = 0;
     ros::param::set("~hFlip", 0);
   }
 
   if (ros::param::get("~vFlip", temp_bool)) {
-   state.camera_parameters.vflip = temp_bool;
+    state.camera_parameters.vflip = temp_bool;
   } else {
-   state.camera_parameters.vflip = 0;
+    state.camera_parameters.vflip = 0;
     ros::param::set("~vFlip", 0);
   }
 
   if (ros::param::get("~shutter_speed", temp)) {
-   state.camera_parameters.shutter_speed = temp;
+    state.camera_parameters.shutter_speed = temp;
   } else {
-   state.camera_parameters.shutter_speed = 0;
+    state.camera_parameters.shutter_speed = 0;
     ros::param::set("~shutter_speed", 0);
   }
 }
@@ -451,7 +458,7 @@ static MMAL_COMPONENT_T* create_camera_component(RASPIVID_STATE& state) {
 
   raspicamcontrol_set_all_parameters(camera, state.camera_parameters);
 
-  state.camera_component = camera;
+  state.camera_component.reset(camera);
 
   ROS_INFO("Camera component done\n");
 
@@ -461,7 +468,6 @@ error:
 
   if (camera)
     mmal_component_destroy(camera);
-
   return 0;
 }
 
@@ -473,8 +479,7 @@ error:
  */
 static void destroy_camera_component(RASPIVID_STATE& state) {
   if (state.camera_component) {
-    mmal_component_destroy(state.camera_component);
-    state.camera_component = nullptr;
+    state.camera_component.reset(nullptr);
   }
 }
 
@@ -562,7 +567,7 @@ static MMAL_STATUS_T create_encoder_component(RASPIVID_STATE& state) {
   }
 
   state.encoder_pool = pool;
-  state.encoder_component = encoder;
+  state.encoder_component.reset(encoder);
 
   ROS_INFO("Encoder component done\n");
 
@@ -586,10 +591,8 @@ static void destroy_encoder_component(RASPIVID_STATE& state) {
   if (state.video_pool) {
     mmal_port_pool_destroy(state.encoder_component->output[0], state.video_pool);
   }
-
   if (state.encoder_component) {
-    mmal_component_destroy(state.encoder_component);
-    state.encoder_component = nullptr;
+    state.encoder_component.reset(nullptr);
   }
 }
 
@@ -603,17 +606,22 @@ static void destroy_encoder_component(RASPIVID_STATE& state) {
  * @return Returns a MMAL_STATUS_T giving result of operation
  *
  */
-static MMAL_STATUS_T connect_ports(MMAL_PORT_T* output_port, MMAL_PORT_T* input_port, MMAL_CONNECTION_T** connection) {
+static MMAL_STATUS_T connect_ports(MMAL_PORT_T* output_port, MMAL_PORT_T* input_port,
+                                   mmal::connection_ptr& connection) {
   MMAL_STATUS_T status;
 
-  status = mmal_connection_create(connection, output_port, input_port,
+  MMAL_CONNECTION_T* new_connection = nullptr;
+
+  status = mmal_connection_create(&new_connection, output_port, input_port,
                                   MMAL_CONNECTION_FLAG_TUNNELLING | MMAL_CONNECTION_FLAG_ALLOCATION_ON_INPUT);
 
   if (status == MMAL_SUCCESS) {
-    status = mmal_connection_enable(*connection);
+    status = mmal_connection_enable(new_connection);
     if (status != MMAL_SUCCESS)
-      mmal_connection_destroy(*connection);
+      mmal_connection_destroy(new_connection);
   }
+
+  connection.reset(new_connection);
 
   return status;
 }
@@ -679,7 +687,7 @@ int init_cam(RASPIVID_STATE& state) {
     camera_still_port = state.camera_component->output[MMAL_CAMERA_CAPTURE_PORT];
     encoder_input_port = state.encoder_component->input[0];
     encoder_output_port = state.encoder_component->output[0];
-    status = connect_ports(camera_video_port, encoder_input_port, &state.encoder_connection);
+    status = connect_ports(camera_video_port, encoder_input_port, state.encoder_connection);
     if (status != MMAL_SUCCESS) {
       ROS_INFO("%s: Failed to connect camera video port to encoder input", __func__);
       return 1;
@@ -741,8 +749,8 @@ int start_capture(RASPIVID_STATE& state) {
 int close_cam(RASPIVID_STATE& state) {
   if (state.isInit) {
     state.isInit = 0;
-    MMAL_COMPONENT_T* camera = state.camera_component;
-    MMAL_COMPONENT_T* encoder = state.encoder_component;
+    MMAL_COMPONENT_T* camera = state.camera_component.get();
+    MMAL_COMPONENT_T* encoder = state.encoder_component.get();
     MMAL_PORT_T* encoder_output_port = state.encoder_component->output[0];
     MMAL_PORT_T* camera_still_port = camera->output[MMAL_CAMERA_CAPTURE_PORT];
     PORT_USERDATA* pData = (PORT_USERDATA*)encoder_output_port->userdata;
@@ -753,7 +761,7 @@ int close_cam(RASPIVID_STATE& state) {
     if (encoder->output[0] && encoder->output[0]->is_enabled)
       mmal_port_disable(encoder->output[0]);
 
-    mmal_connection_destroy(state.encoder_connection);
+    mmal_connection_destroy(state.encoder_connection.get());
 
     // Disable components
     if (encoder)
@@ -795,7 +803,7 @@ void reconfigure_callback(raspicam_node::CameraConfig& config, uint32_t level, R
            config.exposureCompensation, config.videoStabilisation, config.vFlip, config.hFlip, config.zoom,
            config.exposure_mode.c_str(), config.awb_mode.c_str());
 
-  if (!state.camera_component) {
+  if (!state.camera_component.get()) {
     ROS_WARN("camera_component not initialized");
     return;
   }
@@ -808,23 +816,23 @@ void reconfigure_callback(raspicam_node::CameraConfig& config, uint32_t level, R
     PARAM_FLOAT_RECT_T roi;
     roi.x = roi.y = offset;
     roi.w = roi.h = size;
-    raspicamcontrol_set_ROI(state.camera_component, roi);
+    raspicamcontrol_set_ROI(state.camera_component.get(), roi);
   }
 
-  raspicamcontrol_set_exposure_mode(state.camera_component,
+  raspicamcontrol_set_exposure_mode(state.camera_component.get(),
                                     exposure_mode_from_string(config.exposure_mode.c_str()));
 
-  raspicamcontrol_set_awb_mode(state.camera_component, awb_mode_from_string(config.awb_mode.c_str()));
+  raspicamcontrol_set_awb_mode(state.camera_component.get(), awb_mode_from_string(config.awb_mode.c_str()));
 
-  raspicamcontrol_set_contrast(state.camera_component, config.contrast);
-  raspicamcontrol_set_sharpness(state.camera_component, config.sharpness);
-  raspicamcontrol_set_brightness(state.camera_component, config.brightness);
-  raspicamcontrol_set_saturation(state.camera_component, config.saturation);
-  raspicamcontrol_set_ISO(state.camera_component, config.ISO);
-  raspicamcontrol_set_exposure_compensation(state.camera_component, config.exposureCompensation);
-  raspicamcontrol_set_video_stabilisation(state.camera_component, config.videoStabilisation);
-  raspicamcontrol_set_flips(state.camera_component, config.hFlip, config.vFlip);
-  raspicamcontrol_set_shutter_speed(state.camera_component, config.shutterSpeed);
+  raspicamcontrol_set_contrast(state.camera_component.get(), config.contrast);
+  raspicamcontrol_set_sharpness(state.camera_component.get(), config.sharpness);
+  raspicamcontrol_set_brightness(state.camera_component.get(), config.brightness);
+  raspicamcontrol_set_saturation(state.camera_component.get(), config.saturation);
+  raspicamcontrol_set_ISO(state.camera_component.get(), config.ISO);
+  raspicamcontrol_set_exposure_compensation(state.camera_component.get(), config.exposureCompensation);
+  raspicamcontrol_set_video_stabilisation(state.camera_component.get(), config.videoStabilisation);
+  raspicamcontrol_set_flips(state.camera_component.get(), config.hFlip, config.vFlip);
+  raspicamcontrol_set_shutter_speed(state.camera_component.get(), config.shutterSpeed);
 
   ROS_INFO("Reconfigure done");
 }
@@ -847,7 +855,7 @@ int main(int argc, char** argv) {
   RASPIVID_STATE state_srv;
 
   init_cam(state_srv);  // will need to figure out how to handle start and
-                         // stop with dynamic reconfigure
+                        // stop with dynamic reconfigure
 
   if (!c_info_man.loadCameraInfo(camera_info_url)) {
     ROS_INFO("Calibration file missing. Camera not calibrated");
@@ -868,7 +876,7 @@ int main(int argc, char** argv) {
 
   dynamic_reconfigure::Server<raspicam_node::CameraConfig> server;
   dynamic_reconfigure::Server<raspicam_node::CameraConfig>::CallbackType f;
-  f = boost::bind(&reconfigure_callback, _1, _2, state_srv);
+  f = boost::bind(&reconfigure_callback, _1, _2, boost::ref(state_srv));
   server.setCallback(f);
 
   start_capture(state_srv);

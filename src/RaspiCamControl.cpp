@@ -420,14 +420,13 @@ static MMAL_PARAM_EXPOSUREMETERINGMODE_T metering_mode_from_string(const char* s
  *
  * @param params Const ref to parameters structure to dump
  */
-void raspicamcontrol_dump_parameters(const RASPICAM_CAMERA_PARAMETERS& params){
+void raspicamcontrol_dump_parameters(const RASPICAM_CAMERA_PARAMETERS& params) {
   const char* exp_mode = unmap_xref(params.exposureMode, exposure_map, exposure_map_size);
   const char* awb_mode = unmap_xref(params.awbMode, awb_map, awb_map_size);
   const char* image_effect = unmap_xref(params.imageEffect, imagefx_map, imagefx_map_size);
   const char* metering_mode = unmap_xref(params.exposureMeterMode, metering_mode_map, metering_mode_map_size);
 
-  fprintf(stderr, "Sharpness %d, Contrast %d, Brightness %d\n", params.sharpness, params.contrast,
-          params.brightness);
+  fprintf(stderr, "Sharpness %d, Contrast %d, Brightness %d\n", params.sharpness, params.contrast, params.brightness);
   fprintf(stderr, "Saturation %d, ISO %d, Video Stabilisation %s, Exposure "
                   "compensation %d\n",
           params.saturation, params.ISO, params.videoStabilisation ? "Yes" : "No", params.exposureCompensation);
