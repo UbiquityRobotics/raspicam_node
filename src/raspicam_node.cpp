@@ -456,7 +456,7 @@ static MMAL_COMPONENT_T* create_camera_component(RASPIVID_STATE& state) {
     goto error;
   }
 
-  raspicamcontrol_set_all_parameters(camera, state.camera_parameters);
+  raspicamcontrol_set_all_parameters(*camera, state.camera_parameters);
 
   state.camera_component.reset(camera);
 
@@ -816,23 +816,23 @@ void reconfigure_callback(raspicam_node::CameraConfig& config, uint32_t level, R
     PARAM_FLOAT_RECT_T roi;
     roi.x = roi.y = offset;
     roi.w = roi.h = size;
-    raspicamcontrol_set_ROI(state.camera_component.get(), roi);
+    raspicamcontrol_set_ROI(*state.camera_component, roi);
   }
 
-  raspicamcontrol_set_exposure_mode(state.camera_component.get(),
+  raspicamcontrol_set_exposure_mode(*state.camera_component,
                                     exposure_mode_from_string(config.exposure_mode.c_str()));
 
-  raspicamcontrol_set_awb_mode(state.camera_component.get(), awb_mode_from_string(config.awb_mode.c_str()));
+  raspicamcontrol_set_awb_mode(*state.camera_component, awb_mode_from_string(config.awb_mode.c_str()));
 
-  raspicamcontrol_set_contrast(state.camera_component.get(), config.contrast);
-  raspicamcontrol_set_sharpness(state.camera_component.get(), config.sharpness);
-  raspicamcontrol_set_brightness(state.camera_component.get(), config.brightness);
-  raspicamcontrol_set_saturation(state.camera_component.get(), config.saturation);
-  raspicamcontrol_set_ISO(state.camera_component.get(), config.ISO);
-  raspicamcontrol_set_exposure_compensation(state.camera_component.get(), config.exposureCompensation);
-  raspicamcontrol_set_video_stabilisation(state.camera_component.get(), config.videoStabilisation);
-  raspicamcontrol_set_flips(state.camera_component.get(), config.hFlip, config.vFlip);
-  raspicamcontrol_set_shutter_speed(state.camera_component.get(), config.shutterSpeed);
+  raspicamcontrol_set_contrast(*state.camera_component, config.contrast);
+  raspicamcontrol_set_sharpness(*state.camera_component, config.sharpness);
+  raspicamcontrol_set_brightness(*state.camera_component, config.brightness);
+  raspicamcontrol_set_saturation(*state.camera_component, config.saturation);
+  raspicamcontrol_set_ISO(*state.camera_component, config.ISO);
+  raspicamcontrol_set_exposure_compensation(*state.camera_component, config.exposureCompensation);
+  raspicamcontrol_set_video_stabilisation(*state.camera_component, config.videoStabilisation);
+  raspicamcontrol_set_flips(*state.camera_component, config.hFlip, config.vFlip);
+  raspicamcontrol_set_shutter_speed(*state.camera_component, config.shutterSpeed);
 
   ROS_INFO("Reconfigure done");
 }

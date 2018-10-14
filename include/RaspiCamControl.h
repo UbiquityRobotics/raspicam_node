@@ -139,9 +139,9 @@ MMAL_PARAM_AWBMODE_T awb_mode_from_string(const char* str);
 
 void raspicamcontrol_check_configuration(int min_gpu_mem);
 
-int raspicamcontrol_cycle_test(MMAL_COMPONENT_T* camera);
+int raspicamcontrol_cycle_test(MMAL_COMPONENT_T& camera);
 
-int raspicamcontrol_set_all_parameters(MMAL_COMPONENT_T* camera, const RASPICAM_CAMERA_PARAMETERS& params);
+int raspicamcontrol_set_all_parameters(MMAL_COMPONENT_T& camera, const RASPICAM_CAMERA_PARAMETERS& params);
 void raspicamcontrol_dump_parameters(const RASPICAM_CAMERA_PARAMETERS& params);
 
 void raspicamcontrol_set_defaults(RASPICAM_CAMERA_PARAMETERS& params);
@@ -149,36 +149,36 @@ void raspicamcontrol_set_defaults(RASPICAM_CAMERA_PARAMETERS& params);
 void raspicamcontrol_check_configuration(int min_gpu_mem);
 
 // Individual setting functions
-int raspicamcontrol_set_saturation(MMAL_COMPONENT_T* camera, int saturation);
-int raspicamcontrol_set_sharpness(MMAL_COMPONENT_T* camera, int sharpness);
-int raspicamcontrol_set_contrast(MMAL_COMPONENT_T* camera, int contrast);
-int raspicamcontrol_set_brightness(MMAL_COMPONENT_T* camera, int brightness);
-int raspicamcontrol_set_ISO(MMAL_COMPONENT_T* camera, int ISO);
-int raspicamcontrol_set_metering_mode(MMAL_COMPONENT_T* camera, MMAL_PARAM_EXPOSUREMETERINGMODE_T mode);
-int raspicamcontrol_set_video_stabilisation(MMAL_COMPONENT_T* camera, int vstabilisation);
-int raspicamcontrol_set_exposure_compensation(MMAL_COMPONENT_T* camera, int exp_comp);
-int raspicamcontrol_set_exposure_mode(MMAL_COMPONENT_T* camera, MMAL_PARAM_EXPOSUREMODE_T mode);
-int raspicamcontrol_set_awb_mode(MMAL_COMPONENT_T* camera, MMAL_PARAM_AWBMODE_T awb_mode);
-int raspicamcontrol_set_imageFX(MMAL_COMPONENT_T* camera, MMAL_PARAM_IMAGEFX_T imageFX);
-int raspicamcontrol_set_colourFX(MMAL_COMPONENT_T* camera, const MMAL_PARAM_COLOURFX_T* colourFX);
-int raspicamcontrol_set_rotation(MMAL_COMPONENT_T* camera, int rotation);
-int raspicamcontrol_set_flips(MMAL_COMPONENT_T* camera, int hflip, int vflip);
-int raspicamcontrol_set_ROI(MMAL_COMPONENT_T* camera, PARAM_FLOAT_RECT_T rect);
-int raspicamcontrol_set_shutter_speed(MMAL_COMPONENT_T* camera, int shutter_speed);
+int raspicamcontrol_set_saturation(MMAL_COMPONENT_T& camera, int saturation);
+int raspicamcontrol_set_sharpness(MMAL_COMPONENT_T& camera, int sharpness);
+int raspicamcontrol_set_contrast(MMAL_COMPONENT_T& camera, int contrast);
+int raspicamcontrol_set_brightness(MMAL_COMPONENT_T& camera, int brightness);
+int raspicamcontrol_set_ISO(MMAL_COMPONENT_T& camera, int ISO);
+int raspicamcontrol_set_metering_mode(MMAL_COMPONENT_T& camera, MMAL_PARAM_EXPOSUREMETERINGMODE_T mode);
+int raspicamcontrol_set_video_stabilisation(MMAL_COMPONENT_T& camera, int vstabilisation);
+int raspicamcontrol_set_exposure_compensation(MMAL_COMPONENT_T& camera, int exp_comp);
+int raspicamcontrol_set_exposure_mode(MMAL_COMPONENT_T& camera, MMAL_PARAM_EXPOSUREMODE_T mode);
+int raspicamcontrol_set_awb_mode(MMAL_COMPONENT_T& camera, MMAL_PARAM_AWBMODE_T awb_mode);
+int raspicamcontrol_set_imageFX(MMAL_COMPONENT_T& camera, MMAL_PARAM_IMAGEFX_T imageFX);
+int raspicamcontrol_set_colourFX(MMAL_COMPONENT_T& camera, const MMAL_PARAM_COLOURFX_T* colourFX);
+int raspicamcontrol_set_rotation(MMAL_COMPONENT_T& camera, int rotation);
+int raspicamcontrol_set_flips(MMAL_COMPONENT_T& camera, int hflip, int vflip);
+int raspicamcontrol_set_ROI(MMAL_COMPONENT_T& camera, PARAM_FLOAT_RECT_T rect);
+int raspicamcontrol_set_shutter_speed(MMAL_COMPONENT_T& camera, int shutter_speed);
 
 // Individual getting functions
-int raspicamcontrol_get_saturation(MMAL_COMPONENT_T* camera);
-int raspicamcontrol_get_sharpness(MMAL_COMPONENT_T* camera);
-int raspicamcontrol_get_contrast(MMAL_COMPONENT_T* camera);
-int raspicamcontrol_get_brightness(MMAL_COMPONENT_T* camera);
-int raspicamcontrol_get_ISO(MMAL_COMPONENT_T* camera);
-MMAL_PARAM_EXPOSUREMETERINGMODE_T raspicamcontrol_get_metering_mode(MMAL_COMPONENT_T* camera);
-int raspicamcontrol_get_video_stabilisation(MMAL_COMPONENT_T* camera);
-int raspicamcontrol_get_exposure_compensation(MMAL_COMPONENT_T* camera);
-MMAL_PARAM_THUMBNAIL_CONFIG_T raspicamcontrol_get_thumbnail_parameters(MMAL_COMPONENT_T* camera);
-MMAL_PARAM_EXPOSUREMODE_T raspicamcontrol_get_exposure_mode(MMAL_COMPONENT_T* camera);
-MMAL_PARAM_AWBMODE_T raspicamcontrol_get_awb_mode(MMAL_COMPONENT_T* camera);
-MMAL_PARAM_IMAGEFX_T raspicamcontrol_get_imageFX(MMAL_COMPONENT_T* camera);
-MMAL_PARAM_COLOURFX_T raspicamcontrol_get_colourFX(MMAL_COMPONENT_T* camera);
+int raspicamcontrol_get_saturation(MMAL_COMPONENT_T& camera);
+int raspicamcontrol_get_sharpness(MMAL_COMPONENT_T& camera);
+int raspicamcontrol_get_contrast(MMAL_COMPONENT_T& camera);
+int raspicamcontrol_get_brightness(MMAL_COMPONENT_T& camera);
+int raspicamcontrol_get_ISO(MMAL_COMPONENT_T& camera);
+MMAL_PARAM_EXPOSUREMETERINGMODE_T raspicamcontrol_get_metering_mode(MMAL_COMPONENT_T& camera);
+int raspicamcontrol_get_video_stabilisation(MMAL_COMPONENT_T& camera);
+int raspicamcontrol_get_exposure_compensation(MMAL_COMPONENT_T& camera);
+MMAL_PARAM_THUMBNAIL_CONFIG_T raspicamcontrol_get_thumbnail_parameters(MMAL_COMPONENT_T& camera);
+MMAL_PARAM_EXPOSUREMODE_T raspicamcontrol_get_exposure_mode(MMAL_COMPONENT_T& camera);
+MMAL_PARAM_AWBMODE_T raspicamcontrol_get_awb_mode(MMAL_COMPONENT_T& camera);
+MMAL_PARAM_IMAGEFX_T raspicamcontrol_get_imageFX(MMAL_COMPONENT_T& camera);
+MMAL_PARAM_COLOURFX_T raspicamcontrol_get_colourFX(MMAL_COMPONENT_T& camera);
 
 #endif /* RASPICAMCONTROL_H_ */
