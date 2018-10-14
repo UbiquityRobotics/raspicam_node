@@ -2,7 +2,15 @@
 
 ROS node for the Raspberry Pi Camera Module. Works with both the V1.x and V2.x versions of the module. We recommend using the v2.x cameras as they have better auto gain, and the general image quality is better. 
 
+## Installation
+
+A binary can be found at https://packages.ubiquityrobotics.com/ follow the instructions there to add the repository.
+
+Then run `sudo apt install ros-kinetic-raspicam-node`
+
 ## Build Intructions
+If you want to build from source instead of using the binary follow this section.
+
 This node is primarily supported on ROS Kinetic, and Ubuntu 16.04, and that is what these instuctions presume.
 
 Go to your catkin_ws `cd ~/catkin_ws/src`.
@@ -34,41 +42,12 @@ For a V2.x camera, run `roslaunch raspicam_node camerav2_1280x960.launch`
 
 For a V1.x camera, run `roslaunch raspicam_node camerav1_1280x720.launch`
 
-Use `rqt_image_view` to view the published image.
+Use `rqt_image_view` on a connected computer to view the published image.
 
 ## Configuring the node with dynamic reconfigure
+The `raspicam_node` supports dynamically reconfiguring the camera parameters.
 
-This section describes how to use a second computer to dynamically adjust the paramaters of the node.
-It assumes that the Raspberry PI on which the `raspicam_node` is running has a hostname of `raspi.local`
-and that the reconfiguration is being run on a second computer with a hostname of `laptop.local`.
-
-1. Ensure that the ROS environment variables on `raspi.local` are set so that other machines can interact
-with its ROS nodes.  If they varaiables contain the string `localhost`, they need to be changed.
-
-```
-ubuntu@raspi:~$ echo $ROS_HOSTNAME 
-raspi.local
-ubuntu@raspi:~$ echo $ROS_MASTER_URI 
-http://raspi.local:11311
-```
-
-If necessary they can be adjusted thus:
-
-```
-export ROS_HOSTNAME=`hostname`.local
-export ROS_MASTER_URI=${ROS_HOSTNAME}:11311
-```
-
-The changes can be made persistent by adding those two lines to `~/.bashrc`.
-
-2. One the laptop, set the environment variable `ROS_MASTER_URI` as above:
-
-```
-export ROS_MASTER_URI=${ROS_HOSTNAME}:11311
-```
-
-3. Run the dynamic reconfigure node on `laptop.local`:
-
+Run the dynamic reconfigure node on a connected computer:
 
 ```
 rosrun rqt_reconfigure rqt_reconfigure 
@@ -83,7 +62,7 @@ It should bring up a user interface like the one below.  Paramaters can be dynam
 1. Make sure that your user is in the `video` group by running `groups|grep video`.
 
 2. If you get an error saying: `Failed to create camera component`,
-make sure that the camera cable is properly seated on both ends, and that the cable is not missing any pins. If this doesn't work update your firmware with `rpi-update`.
+make sure that the camera cable is properly seated on both ends, and that the cable is not missing any pins.
 
 3. If the publish rate of the image over the network is lower than expected, consider using a lower resolution to reduce the amount of bandwidth required.
 
@@ -120,7 +99,7 @@ Parameters:
 ## Calibration
 
 The raspicam_node package contains a calibration file for the raspberry
-PI camera versions 1 and 2.  The procedure for calibrating a camera is only necessary if you change the lens or image size used.
+PI camera versions 1 and 2.
 
 A tutorial 
   [Monocular Camera Calibration tutorial](http://wiki.ros.org/camera_calibration/Tutorials/MonocularCalibration)
@@ -140,7 +119,6 @@ A camera calibration can be run with the following commands:
     $ rosrun image_transport republish compressed in:=/raspicam_node/image raw out:=/raspicam_node/image
     $ rosrun camera_calibration cameracalibrator.py --size 8x6 --square 0.074 image:=/raspicam_node/image camera:=/raspicam_node
     
-See http://wiki.ros.org/camera_calibration/Tutorials/MonocularCalibration for a guide on calibration
 
 By default the camera calibrations are saved in the 
 camera_info directory of this package.
