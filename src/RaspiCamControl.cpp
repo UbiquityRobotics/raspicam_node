@@ -672,7 +672,6 @@ int raspicamcontrol_set_metering_mode(MMAL_COMPONENT_T& camera, MMAL_PARAM_EXPOS
  * @return 0 if successful, non-zero if any parameters out of range
  */
 int raspicamcontrol_set_video_stabilisation(MMAL_COMPONENT_T& camera, int vstabilisation) {
-
   return mmal_status_to_int(
       mmal_port_parameter_set_boolean(camera.control, MMAL_PARAMETER_VIDEO_STABILISATION, vstabilisation));
 }
@@ -684,7 +683,6 @@ int raspicamcontrol_set_video_stabilisation(MMAL_COMPONENT_T& camera, int vstabi
  * @return 0 if successful, non-zero if any parameters out of range
  */
 int raspicamcontrol_set_exposure_compensation(MMAL_COMPONENT_T& camera, int exp_comp) {
-
   return mmal_status_to_int(mmal_port_parameter_set_int32(camera.control, MMAL_PARAMETER_EXPOSURE_COMP, exp_comp));
 }
 

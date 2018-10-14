@@ -96,7 +96,7 @@ int main(int argc, char** argv) {
 
 #include "mmal_cxx_helper.h"
 
-const int IMG_BUFFER_SIZE = 10 * 1024 * 1024;
+const int IMG_BUFFER_SIZE = 10 * 1024 * 1024;  // 10 MB
 /// Camera number to use - we only have one camera, indexed from 0.
 #define CAMERA_NUMBER 0
 
@@ -164,92 +164,40 @@ typedef struct {
 /**
  * Assign a default set of parameters to the state passed in
  *
- * @param state Pointer to state structure to assign defaults to
+ * @param state state structure to assign defaults to
+ * @param nh Nodehandle to get params from
  */
-static void get_status(RASPIVID_STATE& state) {
-  int temp;
-  std::string str;
-  bool temp_bool;
-
+static void configure_parameters(RASPIVID_STATE& state, ros::NodeHandle& nh) {
   // Default everything to zero
   memset(&state, 0, sizeof(RASPIVID_STATE));
 
-  if (ros::param::get("~width", temp)) {
-    state.width = temp;
-  } else {
-    state.width = 640;
-    ros::param::set("~width", 640);
-  }
-
-  if (ros::param::get("~height", temp)) {
-    state.height = temp;
-  } else {
-    state.height = 480;
-    ros::param::set("~height", 480);
-  }
-
-  if (ros::param::get("~quality", temp)) {
-    if (temp > 0 && temp <= 100)
-      state.quality = temp;
-    else
-      state.quality = 80;
-  } else {
+  nh.param<int>("width", state.width, 640);
+  nh.param<int>("height", state.height, 480);
+  nh.param<int>("quality", state.quality, 80);
+  if (state.quality < 0 && state.quality > 100) {
+    ROS_WARN("quality: %d is outside valid range 0-100, defaulting to 80", state.quality);
     state.quality = 80;
-    ros::param::set("~quality", 80);
   }
-
-  if (ros::param::get("~framerate", temp)) {
-    if (temp > 0 && temp <= 90)
-      state.framerate = temp;
-    else
-      state.framerate = 30;
-  } else {
+  nh.param<int>("framerate", state.framerate, 30);
+  if (state.framerate < 0 && state.framerate > 90) {
+    ROS_WARN("framerate: %d is outside valid range 0-90, defaulting to 30", state.framerate);
     state.framerate = 30;
-    ros::param::set("~framerate", 30);
   }
 
-  if (ros::param::get("~tf_prefix", str)) {
-    tf_prefix = str;
-  } else {
-    tf_prefix = "";
-    ros::param::set("~tf_prefix", "");
-  }
-
-  if (ros::param::get("~camera_frame_id", str)) {
-    camera_frame_id = str;
-  } else {
-    camera_frame_id = "";
-    ros::param::set("~camera_frame_id", "");
-  }
-
-  state.isInit = 0;
-
-  // Setup preview window defaults
-  // raspipreview_set_defaults(&state->preview_parameters);
+  nh.param<std::string>("tf_prefix", tf_prefix, "");
+  nh.param<std::string>("camera_frame_id", camera_frame_id, "");
 
   // Set up the camera_parameters to default
   raspicamcontrol_set_defaults(state.camera_parameters);
 
-  if (ros::param::get("~hFlip", temp_bool)) {
-    state.camera_parameters.hflip = temp_bool;
-  } else {
-    state.camera_parameters.hflip = 0;
-    ros::param::set("~hFlip", 0);
-  }
+  bool temp;
+  nh.param<bool>("hFlip", temp, false);
+  state.camera_parameters.hflip = temp;  // Hack for bool param => int variable
+  nh.param<bool>("hFlip", temp, false);
+  state.camera_parameters.vflip = temp;  // Hack for bool param => int variable
+  nh.param<int>("shutter_speed", state.camera_parameters.shutter_speed, 0);
 
-  if (ros::param::get("~vFlip", temp_bool)) {
-    state.camera_parameters.vflip = temp_bool;
-  } else {
-    state.camera_parameters.vflip = 0;
-    ros::param::set("~vFlip", 0);
-  }
-
-  if (ros::param::get("~shutter_speed", temp)) {
-    state.camera_parameters.shutter_speed = temp;
-  } else {
-    state.camera_parameters.shutter_speed = 0;
-    ros::param::set("~shutter_speed", 0);
-  }
+  state.isInit = 0;
 }
 
 /**
@@ -667,7 +615,6 @@ int init_cam(RASPIVID_STATE& state) {
   MMAL_PORT_T* encoder_output_port = nullptr;
 
   bcm_host_init();
-  get_status(state);
   // Register our application with the logging system
   vcos_log_register("RaspiVid", VCOS_LOG_CATEGORY);
 
@@ -819,8 +766,7 @@ void reconfigure_callback(raspicam_node::CameraConfig& config, uint32_t level, R
     raspicamcontrol_set_ROI(*state.camera_component, roi);
   }
 
-  raspicamcontrol_set_exposure_mode(*state.camera_component,
-                                    exposure_mode_from_string(config.exposure_mode.c_str()));
+  raspicamcontrol_set_exposure_mode(*state.camera_component, exposure_mode_from_string(config.exposure_mode.c_str()));
 
   raspicamcontrol_set_awb_mode(*state.camera_component, awb_mode_from_string(config.awb_mode.c_str()));
 
@@ -854,6 +800,7 @@ int main(int argc, char** argv) {
 
   RASPIVID_STATE state_srv;
 
+  configure_parameters(state_srv, n);
   init_cam(state_srv);  // will need to figure out how to handle start and
                         // stop with dynamic reconfigure
 
