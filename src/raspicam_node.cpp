@@ -385,7 +385,7 @@ static MMAL_COMPONENT_T* create_camera_component(RASPIVID_STATE& state) {
 
   state.camera_component.reset(camera);
 
-  ROS_INFO("Camera component done\n");
+  ROS_DEBUG("Camera component done\n");
 
   return camera;
 
@@ -479,11 +479,15 @@ static MMAL_STATUS_T create_encoder_component(RASPIVID_STATE& state) {
     ROS_ERROR("Failed to create buffer header pool for encoder output port %s", encoder_output->name);
   }
 
-  state.encoder_pool =
-      mmal::pool_ptr(pool, [encoder](MMAL_POOL_T* ptr) { mmal_port_pool_destroy(encoder->output[0], ptr); });
+  state.encoder_pool = mmal::pool_ptr(pool, [encoder](MMAL_POOL_T* ptr) {
+    if (encoder->output[0] && encoder->output[0]->is_enabled) {
+      mmal_port_disable(encoder->output[0]);
+    }
+    mmal_port_pool_destroy(encoder->output[0], ptr);
+  });
   state.encoder_component.reset(encoder);
 
-  ROS_INFO("Encoder component done\n");
+  ROS_DEBUG("Encoder component done\n");
 
   return status;
 
@@ -543,9 +547,9 @@ int init_cam(RASPIVID_STATE& state) {
   // We have three components. Camera, Preview and encoder.
 
   if (!create_camera_component(state)) {
-    ROS_INFO("%s: Failed to create camera component", __func__);
+    ROS_ERROR("%s: Failed to create camera component", __func__);
   } else if ((status = create_encoder_component(state)) != MMAL_SUCCESS) {
-    ROS_INFO("%s: Failed to create encode component", __func__);
+    ROS_ERROR("%s: Failed to create encode component", __func__);
     state.camera_component.reset(nullptr);
   } else {
     camera_video_port = state.camera_component->output[MMAL_CAMERA_VIDEO_PORT];
@@ -553,7 +557,7 @@ int init_cam(RASPIVID_STATE& state) {
     encoder_output_port = state.encoder_component->output[0];
     status = connect_ports(camera_video_port, encoder_input_port, state.encoder_connection);
     if (status != MMAL_SUCCESS) {
-      ROS_INFO("%s: Failed to connect camera video port to encoder input", __func__);
+      ROS_ERROR("%s: Failed to connect camera video port to encoder input", __func__);
       return 1;
     }
 
@@ -569,7 +573,7 @@ int init_cam(RASPIVID_STATE& state) {
     // Enable the encoder output port and tell it its callback function
     status = mmal_port_enable(encoder_output_port, encoder_buffer_callback);
     if (status != MMAL_SUCCESS) {
-      ROS_INFO("Failed to setup encoder output");
+      ROS_ERROR("Failed to setup encoder output");
       return 1;
     }
     state.isInit = true;
@@ -640,16 +644,16 @@ int close_cam(RASPIVID_STATE& state) {
 }
 
 void reconfigure_callback(raspicam_node::CameraConfig& config, uint32_t level, RASPIVID_STATE& state) {
-  ROS_INFO("Reconfigure Request: contrast %d, sharpness %d, brightness %d, "
-           "saturation %d, ISO %d, exposureCompensation %d,"
-           " videoStabilisation %d, vFlip %d, hFlip %d,"
-           " zoom %.2f, exposure_mode %s, awb_mode %s, shutter_speed %d",
-           config.contrast, config.sharpness, config.brightness, config.saturation, config.ISO,
-           config.exposure_compensation, config.video_stabilisation, config.vFlip, config.hFlip, config.zoom,
-           config.exposure_mode.c_str(), config.awb_mode.c_str(), config.shutter_speed);
+  ROS_DEBUG("figure Request: contrast %d, sharpness %d, brightness %d, "
+            "saturation %d, ISO %d, exposureCompensation %d,"
+            " videoStabilisation %d, vFlip %d, hFlip %d,"
+            " zoom %.2f, exposure_mode %s, awb_mode %s, shutter_speed %d",
+            config.contrast, config.sharpness, config.brightness, config.saturation, config.ISO,
+            config.exposure_compensation, config.video_stabilisation, config.vFlip, config.hFlip, config.zoom,
+            config.exposure_mode.c_str(), config.awb_mode.c_str(), config.shutter_speed);
 
   if (!state.camera_component.get()) {
-    ROS_WARN("camera_component not initialized");
+    ROS_WARN("reconfiguring, but camera_component not initialized");
     return;
   }
 
@@ -678,7 +682,7 @@ void reconfigure_callback(raspicam_node::CameraConfig& config, uint32_t level, R
   raspicamcontrol_set_flips(*state.camera_component, config.hFlip, config.vFlip);
   raspicamcontrol_set_shutter_speed(*state.camera_component, config.shutter_speed);
 
-  ROS_INFO("Reconfigure done");
+  ROS_DEBUG("Reconfigure done");
 }
 
 int main(int argc, char** argv) {
@@ -692,15 +696,13 @@ int main(int argc, char** argv) {
 
   n.param("camera_info_url", camera_info_url, std::string("package://raspicam_node/camera_info/camera.yaml"));
   n.param("camera_name", camera_name, std::string("camera"));
-  ROS_INFO("Loading CameraInfo from %s", camera_info_url.c_str());
 
   camera_info_manager::CameraInfoManager c_info_man(n, camera_name, camera_info_url);
 
   RASPIVID_STATE state_srv;
 
   configure_parameters(state_srv, n);
-  init_cam(state_srv);  // will need to figure out how to handle start and
-                        // stop with dynamic reconfigure
+  init_cam(state_srv);
 
   if (!c_info_man.loadCameraInfo(camera_info_url)) {
     ROS_INFO("Calibration file missing. Camera not calibrated");
