@@ -1,5 +1,8 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.1)
 project(raspicam_node)
+
+
+set(CMAKE_CXX_STANDARD 14) # use C++14
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -109,23 +112,13 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(include
   ${catkin_INCLUDE_DIRS}
-  /home/pi/userland
   /opt/vc/include
   /opt/vc/include/interface/vcos/pthreads
   /opt/vc/include/interface/vmcs_host/linux
 )
 
-## Declare a cpp library
-add_library(raspicli STATIC
-  src/RaspiCLI.cpp 
-)
-
-add_library(raspicamcontrol STATIC
-  src/RaspiCamControl.cpp 
-)
-
 ## Declare a cpp executable
-add_executable(raspicam_node src/raspicam_node.cpp)
+add_executable(raspicam_node src/raspicam_node.cpp src/RaspiCamControl.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
@@ -135,7 +128,6 @@ add_dependencies(raspicam_node raspicam_node_gencfg)
 ## Specify libraries to link a library or executable target against
 target_link_libraries(raspicam_node
   ${catkin_LIBRARIES}
-  raspicamcontrol raspicli
   ${RPI_LIBRARIES} 
 )
 
