@@ -118,10 +118,10 @@ int mmal_status_to_int(MMAL_STATUS_T status);
  */
 struct RASPIVID_STATE {
   RASPIVID_STATE()
-    : camera_component(nullptr, mmal::component_destroy_v)
-    , encoder_component(nullptr, mmal::component_destroy_v)
-    , preview_connection(nullptr, mmal::connection_destroy_v)
-    , encoder_connection(nullptr, mmal::connection_destroy_v){};
+    : camera_component(nullptr)
+    , encoder_component(nullptr)
+    , preview_connection(nullptr)
+    , encoder_connection(nullptr){};
 
   int isInit;
   int width;      /// Requested width of image

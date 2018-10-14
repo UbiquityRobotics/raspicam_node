@@ -9,20 +9,24 @@
 namespace mmal
 {
 // Calls mmal_component_destroy, but returns void
-void component_destroy_v(MMAL_COMPONENT_T* ptr) {
-  if (ptr != nullptr) {
-    mmal_component_destroy(ptr);
+
+struct component_deleter {
+  void operator()(MMAL_COMPONENT_T* ptr) const {
+    if (ptr != nullptr) {
+    	mmal_component_destroy(ptr);
+  	}
   }
-}
+};
+typedef std::unique_ptr<MMAL_COMPONENT_T, component_deleter> component_ptr;
 
-typedef std::unique_ptr<MMAL_COMPONENT_T, decltype(&component_destroy_v)> component_ptr;
 
-// Calls mmal_component_destroy, but returns void
-void connection_destroy_v(MMAL_CONNECTION_T* ptr) {
-  if (ptr != nullptr) {
-    mmal_connection_destroy(ptr);
+struct connection_deleter {
+  void operator()(MMAL_CONNECTION_T* ptr) const {
+    if (ptr != nullptr) {
+    	mmal_connection_destroy(ptr);
+  	}
   }
-}
+};
+typedef std::unique_ptr<MMAL_CONNECTION_T, connection_deleter> connection_ptr;
 
-typedef std::unique_ptr<MMAL_CONNECTION_T, decltype(&connection_destroy_v)> connection_ptr;
 }
