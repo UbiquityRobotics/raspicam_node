@@ -153,7 +153,7 @@ int frames_skipped = 0;
 /** Struct used to pass information in encoder port userdata to callback
  */
 typedef struct {
-  unsigned char* buffer[2];  /// File handle to write buffer data to.
+  std::unique_ptr<uint8_t[]> buffer[2];  /// Memory to write buffer data to.
   RASPIVID_STATE* pstate;    /// pointer to our state for use by callback
   int abort;                 /// Set to 1 in callback if an error occurs to attempt to abort
                              /// the capture
@@ -226,7 +226,7 @@ static void encoder_buffer_callback(MMAL_PORT_T* port, MMAL_BUFFER_HEADER_T* buf
           pData->id = INT_MAX;  // mark this frame corrupted
         } else {
           mmal_buffer_header_mem_lock(buffer);
-          memcpy(&(pData->buffer[pData->frame & 1][pData->id]), buffer->data, buffer->length);
+          memcpy(&(pData->buffer[pData->frame & 1].get()[pData->id]), buffer->data, buffer->length);
           pData->id += bytes_written;
           mmal_buffer_header_mem_unlock(buffer);
         }
@@ -253,8 +253,8 @@ static void encoder_buffer_callback(MMAL_PORT_T* port, MMAL_BUFFER_HEADER_T* buf
           msg.header.frame_id = camera_frame_id;
           msg.header.stamp = ros::Time::now();
           msg.format = "jpg";
-          msg.data.insert(msg.data.end(), pData->buffer[pData->frame & 1],
-                          &(pData->buffer[pData->frame & 1][pData->id]));
+          msg.data.insert(msg.data.end(), pData->buffer[pData->frame & 1].get(),
+                          &(pData->buffer[pData->frame & 1].get()[pData->id]));
           image_pub.publish(msg);
           c_info.header.seq = pData->frame;
           c_info.header.stamp = msg.header.stamp;
@@ -629,7 +629,6 @@ int init_cam(RASPIVID_STATE& state) {
     ROS_INFO("%s: Failed to create encode component", __func__);
     destroy_camera_component(state);
   } else {
-    PORT_USERDATA* callback_data_enc = (PORT_USERDATA*)malloc(sizeof(PORT_USERDATA));
     camera_video_port = state.camera_component->output[MMAL_CAMERA_VIDEO_PORT];
     camera_still_port = state.camera_component->output[MMAL_CAMERA_CAPTURE_PORT];
     encoder_input_port = state.encoder_component->input[0];
@@ -639,8 +638,10 @@ int init_cam(RASPIVID_STATE& state) {
       ROS_INFO("%s: Failed to connect camera video port to encoder input", __func__);
       return 1;
     }
-    callback_data_enc->buffer[0] = (unsigned char*)malloc(IMG_BUFFER_SIZE);
-    callback_data_enc->buffer[1] = (unsigned char*)malloc(IMG_BUFFER_SIZE);
+
+    PORT_USERDATA* callback_data_enc = new PORT_USERDATA;
+    callback_data_enc->buffer[0] = std::make_unique<uint8_t[]>(IMG_BUFFER_SIZE);
+    callback_data_enc->buffer[1] = std::make_unique<uint8_t[]>(IMG_BUFFER_SIZE);
     // Set up our userdata - this is passed though to the callback where we
     // need the information.
     callback_data_enc->pstate = &state;
@@ -648,7 +649,6 @@ int init_cam(RASPIVID_STATE& state) {
     callback_data_enc->id = 0;
     callback_data_enc->frame = 0;
     encoder_output_port->userdata = (struct MMAL_PORT_USERDATA_T*)callback_data_enc;
-    PORT_USERDATA* pData = (PORT_USERDATA*)encoder_output_port->userdata;
     // Enable the encoder output port and tell it its callback function
     status = mmal_port_enable(encoder_output_port, encoder_buffer_callback);
     if (status != MMAL_SUCCESS) {
@@ -723,10 +723,8 @@ int close_cam(RASPIVID_STATE& state) {
       mmal_port_pool_destroy(encoder->output[0], state.encoder_pool);
     }
 
-    free(pData->buffer[0]);
-    free(pData->buffer[1]);
-
     if (encoder) {
+      delete pData;
       mmal_component_destroy(encoder);
       encoder = nullptr;
     }
