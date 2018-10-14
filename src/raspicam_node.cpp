@@ -642,34 +642,20 @@ int close_cam(RASPIVID_STATE& state) {
     state.isInit = false;
     MMAL_COMPONENT_T* camera = state.camera_component.get();
     MMAL_COMPONENT_T* encoder = state.encoder_component.get();
-    MMAL_PORT_T* encoder_output_port = state.encoder_component->output[0];
-    MMAL_PORT_T* camera_still_port = camera->output[MMAL_CAMERA_CAPTURE_PORT];
-    PORT_USERDATA* pData = encoder_output_port->userdata;
 
-    if (camera_still_port && camera_still_port->is_enabled)
-      mmal_port_disable(camera_still_port);
-
-    if (encoder->output[0] && encoder->output[0]->is_enabled)
-      mmal_port_disable(encoder->output[0]);
-
+    // Destroy encoder port connection
     state.encoder_connection.reset(nullptr);
 
-    // Disable components
-    if (encoder)
-      mmal_component_disable(encoder);
-
-    if (camera)
-      mmal_component_disable(camera);
-
+    // Destroy encoder component
     if (encoder) {
-      // Destroy encoder component
       // Get rid of any port buffers first
       state.encoder_pool.reset(nullptr);
       state.video_pool.reset(nullptr);
       // Delete callback structure
-      delete pData;
+      delete encoder->output[0]->userdata;
       state.encoder_component.reset(nullptr);
     }
+
     // destroy camera component
     if (camera) {
       state.camera_component.reset(nullptr);

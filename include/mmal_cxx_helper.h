@@ -13,6 +13,12 @@ namespace mmal
 struct component_deleter {
   void operator()(MMAL_COMPONENT_T* ptr) const {
     if (ptr != nullptr) {
+      for (int i = 0; i < ptr->output_num; ++i){
+        if (ptr->output[i] && ptr->output[i]->is_enabled) {
+          mmal_port_disable(ptr->output[i]);
+        }
+      }
+      mmal_component_disable(ptr);
       mmal_component_destroy(ptr);
     }
   }
