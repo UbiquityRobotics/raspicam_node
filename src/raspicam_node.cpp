@@ -102,7 +102,7 @@ struct RASPIVID_STATE {
     , video_pool(nullptr, mmal::default_delete_pool)
     , encoder_pool(nullptr, mmal::default_delete_pool){};
 
-  int isInit;
+  bool isInit;
   int width;      /// Requested width of image
   int height;     /// requested height of image
   int framerate;  /// Requested frame rate (fps)
@@ -129,15 +129,15 @@ int frames_skipped = 0;
 
 /** Struct used to pass information in encoder port userdata to callback
  */
-struct PORT_USERDATA {
-  PORT_USERDATA(const RASPIVID_STATE& state) : pstate(state){};
-  std::unique_ptr<uint8_t[]> buffer[2];  /// Memory to write buffer data to.
-  const RASPIVID_STATE& pstate;          /// pointer to our state for use by callback
-  int abort;                             /// Set to 1 in callback if an error occurs to attempt to abort
-                                         /// the capture
+typedef struct MMAL_PORT_USERDATA_T {
+  MMAL_PORT_USERDATA_T(const RASPIVID_STATE& state) : pstate(state){};
+  std::unique_ptr<uint8_t[]> buffer[2];  // Memory to write buffer data to.
+  const RASPIVID_STATE& pstate;          // pointer to our state for use by callback
+  bool abort;                            // Set to 1 in callback if an error occurs to attempt to abort
+                                         // the capture
   int frame;
   int id;
-};
+} PORT_USERDATA;
 
 /**
  * Assign a default set of parameters to the state passed in
@@ -172,7 +172,7 @@ static void configure_parameters(RASPIVID_STATE& state, ros::NodeHandle& nh) {
   state.camera_parameters.vflip = temp;  // Hack for bool param => int variable
   nh.param<int>("shutter_speed", state.camera_parameters.shutter_speed, 0);
 
-  state.isInit = 0;
+  state.isInit = false;
 }
 
 /**
@@ -189,7 +189,7 @@ static void encoder_buffer_callback(MMAL_PORT_T* port, MMAL_BUFFER_HEADER_T* buf
 
   // We pass our file handle and other stuff in via the userdata field.
 
-  PORT_USERDATA* pData = (PORT_USERDATA*)port->userdata;
+  PORT_USERDATA* pData = port->userdata;
   if (pData && pData->pstate.isInit) {
     int bytes_written = buffer->length;
     if (buffer->length) {
@@ -211,7 +211,7 @@ static void encoder_buffer_callback(MMAL_PORT_T* port, MMAL_BUFFER_HEADER_T* buf
     if (bytes_written != buffer->length) {
       vcos_log_error("Failed to write buffer data (%d from %d)- aborting", bytes_written, buffer->length);
       ROS_ERROR("Failed to write buffer data (%d from %d)- aborting", bytes_written, buffer->length);
-      pData->abort = 1;
+      pData->abort = true;
     }
     if (buffer->flags & (MMAL_BUFFER_HEADER_FLAG_FRAME_END | MMAL_BUFFER_HEADER_FLAG_TRANSMISSION_FAILED))
       complete = 1;
@@ -589,17 +589,17 @@ int init_cam(RASPIVID_STATE& state) {
     callback_data_enc->buffer[1] = std::make_unique<uint8_t[]>(IMG_BUFFER_SIZE);
     // Set up our userdata - this is passed though to the callback where we
     // need the information.
-    callback_data_enc->abort = 0;
+    callback_data_enc->abort = false;
     callback_data_enc->id = 0;
     callback_data_enc->frame = 0;
-    encoder_output_port->userdata = (struct MMAL_PORT_USERDATA_T*)callback_data_enc;
+    encoder_output_port->userdata = callback_data_enc;
     // Enable the encoder output port and tell it its callback function
     status = mmal_port_enable(encoder_output_port, encoder_buffer_callback);
     if (status != MMAL_SUCCESS) {
       ROS_INFO("Failed to setup encoder output");
       return 1;
     }
-    state.isInit = 1;
+    state.isInit = true;
   }
   return 0;
 }
@@ -639,12 +639,12 @@ int start_capture(RASPIVID_STATE& state) {
 
 int close_cam(RASPIVID_STATE& state) {
   if (state.isInit) {
-    state.isInit = 0;
+    state.isInit = false;
     MMAL_COMPONENT_T* camera = state.camera_component.get();
     MMAL_COMPONENT_T* encoder = state.encoder_component.get();
     MMAL_PORT_T* encoder_output_port = state.encoder_component->output[0];
     MMAL_PORT_T* camera_still_port = camera->output[MMAL_CAMERA_CAPTURE_PORT];
-    PORT_USERDATA* pData = (PORT_USERDATA*)encoder_output_port->userdata;
+    PORT_USERDATA* pData = encoder_output_port->userdata;
 
     if (camera_still_port && camera_still_port->is_enabled)
       mmal_port_disable(camera_still_port);
