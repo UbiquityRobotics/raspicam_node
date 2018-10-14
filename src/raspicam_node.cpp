@@ -152,14 +152,15 @@ int frames_skipped = 0;
 
 /** Struct used to pass information in encoder port userdata to callback
  */
-typedef struct {
+struct PORT_USERDATA {
+  PORT_USERDATA(const RASPIVID_STATE& state) : pstate(state) {};
   std::unique_ptr<uint8_t[]> buffer[2];  /// Memory to write buffer data to.
-  RASPIVID_STATE* pstate;    /// pointer to our state for use by callback
+  const RASPIVID_STATE& pstate;    /// pointer to our state for use by callback
   int abort;                 /// Set to 1 in callback if an error occurs to attempt to abort
                              /// the capture
   int frame;
   int id;
-} PORT_USERDATA;
+};
 
 /**
  * Assign a default set of parameters to the state passed in
@@ -215,7 +216,7 @@ static void encoder_buffer_callback(MMAL_PORT_T* port, MMAL_BUFFER_HEADER_T* buf
   // We pass our file handle and other stuff in via the userdata field.
 
   PORT_USERDATA* pData = (PORT_USERDATA*)port->userdata;
-  if (pData && pData->pstate->isInit) {
+  if (pData && pData->pstate.isInit) {
     int bytes_written = buffer->length;
     if (buffer->length) {
       if (pData->id != INT_MAX) {
@@ -274,7 +275,7 @@ static void encoder_buffer_callback(MMAL_PORT_T* port, MMAL_BUFFER_HEADER_T* buf
   if (port->is_enabled) {
     MMAL_STATUS_T status;
 
-    new_buffer = mmal_queue_get(pData->pstate->encoder_pool->queue);
+    new_buffer = mmal_queue_get(pData->pstate.encoder_pool->queue);
 
     if (new_buffer)
       status = mmal_port_send_buffer(port, new_buffer);
@@ -639,12 +640,11 @@ int init_cam(RASPIVID_STATE& state) {
       return 1;
     }
 
-    PORT_USERDATA* callback_data_enc = new PORT_USERDATA;
+    PORT_USERDATA* callback_data_enc = new PORT_USERDATA(state);
     callback_data_enc->buffer[0] = std::make_unique<uint8_t[]>(IMG_BUFFER_SIZE);
     callback_data_enc->buffer[1] = std::make_unique<uint8_t[]>(IMG_BUFFER_SIZE);
     // Set up our userdata - this is passed though to the callback where we
     // need the information.
-    callback_data_enc->pstate = &state;
     callback_data_enc->abort = 0;
     callback_data_enc->id = 0;
     callback_data_enc->frame = 0;
