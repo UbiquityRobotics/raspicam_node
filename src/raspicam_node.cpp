@@ -191,7 +191,7 @@ static void encoder_buffer_callback(MMAL_PORT_T* port, MMAL_BUFFER_HEADER_T* buf
 
   PORT_USERDATA* pData = port->userdata;
   if (pData && pData->pstate.isInit) {
-    int bytes_written = buffer->length;
+    size_t bytes_written = buffer->length;
     if (buffer->length) {
       if (pData->id != INT_MAX) {
         if (pData->id + buffer->length > IMG_BUFFER_SIZE) {
@@ -274,7 +274,7 @@ static void encoder_buffer_callback(MMAL_PORT_T* port, MMAL_BUFFER_HEADER_T* buf
 static MMAL_COMPONENT_T* create_camera_component(RASPIVID_STATE& state) {
   MMAL_COMPONENT_T* camera = 0;
   MMAL_ES_FORMAT_T* format;
-  MMAL_PORT_T *preview_port = nullptr, *video_port = nullptr, *still_port = nullptr;
+  MMAL_PORT_T *video_port = nullptr, *still_port = nullptr;
   MMAL_STATUS_T status;
 
   /* Create the component */
@@ -397,18 +397,6 @@ error:
 }
 
 /**
- * Destroy the camera component
- *
- * @param state Pointer to state control struct
- *
- */
-static void destroy_camera_component(RASPIVID_STATE& state) {
-  if (state.camera_component) {
-    state.camera_component.reset(nullptr);
-  }
-}
-
-/**
  * Create the encoder component, set up its ports
  *
  * @param state Pointer to state control struct
@@ -507,18 +495,6 @@ error:
 }
 
 /**
- * Destroy the encoder component
- *
- * @param state Pointer to state control struct
- *
- */
-static void destroy_encoder_component(RASPIVID_STATE& state) {
-  if (state.encoder_component) {
-    state.encoder_component.reset(nullptr);
-  }
-}
-
-/**
  * Connect two specific ports together
  *
  * @param output_port Pointer the output port
@@ -556,8 +532,6 @@ int init_cam(RASPIVID_STATE& state) {
   // Our main data storage vessel..
   MMAL_STATUS_T status;
   MMAL_PORT_T* camera_video_port = nullptr;
-  MMAL_PORT_T* camera_still_port = nullptr;
-  MMAL_PORT_T* preview_input_port = nullptr;
   MMAL_PORT_T* encoder_input_port = nullptr;
   MMAL_PORT_T* encoder_output_port = nullptr;
 
@@ -572,10 +546,9 @@ int init_cam(RASPIVID_STATE& state) {
     ROS_INFO("%s: Failed to create camera component", __func__);
   } else if ((status = create_encoder_component(state)) != MMAL_SUCCESS) {
     ROS_INFO("%s: Failed to create encode component", __func__);
-    destroy_camera_component(state);
+    state.camera_component.reset(nullptr);
   } else {
     camera_video_port = state.camera_component->output[MMAL_CAMERA_VIDEO_PORT];
-    camera_still_port = state.camera_component->output[MMAL_CAMERA_CAPTURE_PORT];
     encoder_input_port = state.encoder_component->input[0];
     encoder_output_port = state.encoder_component->output[0];
     status = connect_ports(camera_video_port, encoder_input_port, state.encoder_connection);
