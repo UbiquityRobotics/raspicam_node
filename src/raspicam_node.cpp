@@ -745,10 +745,10 @@ void reconfigure_callback(raspicam_node::CameraConfig& config, uint32_t level, R
   ROS_INFO("Reconfigure Request: contrast %d, sharpness %d, brightness %d, "
            "saturation %d, ISO %d, exposureCompensation %d,"
            " videoStabilisation %d, vFlip %d, hFlip %d,"
-           " zoom %.2f, exposure_mode %s, awb_mode %s",
+           " zoom %.2f, exposure_mode %s, awb_mode %s, shutter_speed %d",
            config.contrast, config.sharpness, config.brightness, config.saturation, config.ISO,
-           config.exposureCompensation, config.videoStabilisation, config.vFlip, config.hFlip, config.zoom,
-           config.exposure_mode.c_str(), config.awb_mode.c_str());
+           config.exposure_compensation, config.video_stabilisation, config.vFlip, config.hFlip, config.zoom,
+           config.exposure_mode.c_str(), config.awb_mode.c_str(), config.shutter_speed);
 
   if (!state.camera_component.get()) {
     ROS_WARN("camera_component not initialized");
@@ -775,10 +775,10 @@ void reconfigure_callback(raspicam_node::CameraConfig& config, uint32_t level, R
   raspicamcontrol_set_brightness(*state.camera_component, config.brightness);
   raspicamcontrol_set_saturation(*state.camera_component, config.saturation);
   raspicamcontrol_set_ISO(*state.camera_component, config.ISO);
-  raspicamcontrol_set_exposure_compensation(*state.camera_component, config.exposureCompensation);
-  raspicamcontrol_set_video_stabilisation(*state.camera_component, config.videoStabilisation);
+  raspicamcontrol_set_exposure_compensation(*state.camera_component, config.exposure_compensation);
+  raspicamcontrol_set_video_stabilisation(*state.camera_component, config.video_stabilisation);
   raspicamcontrol_set_flips(*state.camera_component, config.hFlip, config.vFlip);
-  raspicamcontrol_set_shutter_speed(*state.camera_component, config.shutterSpeed);
+  raspicamcontrol_set_shutter_speed(*state.camera_component, config.shutter_speed);
 
   ROS_INFO("Reconfigure done");
 }
