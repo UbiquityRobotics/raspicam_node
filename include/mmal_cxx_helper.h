@@ -13,20 +13,25 @@ namespace mmal
 struct component_deleter {
   void operator()(MMAL_COMPONENT_T* ptr) const {
     if (ptr != nullptr) {
-    	mmal_component_destroy(ptr);
-  	}
+      mmal_component_destroy(ptr);
+    }
   }
 };
 typedef std::unique_ptr<MMAL_COMPONENT_T, component_deleter> component_ptr;
 
-
 struct connection_deleter {
   void operator()(MMAL_CONNECTION_T* ptr) const {
     if (ptr != nullptr) {
-    	mmal_connection_destroy(ptr);
-  	}
+      mmal_connection_destroy(ptr);
+    }
   }
 };
 typedef std::unique_ptr<MMAL_CONNECTION_T, connection_deleter> connection_ptr;
 
+void default_delete_pool(MMAL_POOL_T* ptr) {
+  if (ptr != nullptr) {
+    fprintf(stderr, "%s\n", "LEAKED POOL! you need to define your own deleter");
+  }
+}
+typedef std::unique_ptr<MMAL_POOL_T, std::function<void(MMAL_POOL_T*)>> pool_ptr;
 }
