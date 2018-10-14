@@ -251,8 +251,10 @@ static void encoder_buffer_callback(MMAL_PORT_T* port, MMAL_BUFFER_HEADER_T* buf
           msg.header.frame_id = camera_frame_id;
           msg.header.stamp = ros::Time::now();
           msg.format = "jpg";
-          msg.data.insert(msg.data.end(), pData->buffer[pData->frame & 1].get(),
-                          &(pData->buffer[pData->frame & 1].get()[pData->id]));
+          auto start = pData->buffer[pData->frame & 1].get();
+          auto end = &(pData->buffer[pData->frame & 1].get()[pData->id]);
+          msg.data.reserve(pData->id);
+          std::copy(start, end, std::back_inserter(msg.data));
           image_pub.publish(msg);
           c_info.header.seq = pData->frame;
           c_info.header.stamp = msg.header.stamp;
