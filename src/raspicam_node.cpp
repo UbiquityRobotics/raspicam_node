@@ -26,27 +26,6 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-/**
- * \file RaspiVid.c
- * Command line program to capture a camera video stream and encode it to file.
- * Also optionally display a preview/viewfinder of current camera input.
- *
- * \date 28th Feb 2013
- * \Author: James Hughes
- *
- * Description
- *
- * 3 components are created; camera, preview and video encoder.
- * Camera component has three ports, preview, video and stills.
- * This program connects preview and stills to the preview and video
- * encoder. Using mmal we don't need to worry about buffers between these
- * components, but we do need to handle buffers from the encoder, which
- * are simply written straight to the file in the requisite buffer callback.
- *
- * We use the RaspiCamControl code to handle the specific camera settings.
- * We use the RaspiPreview code to handle the (generic) preview window
- */
-
 #ifdef __x86_64__
 
 #include <stdio.h>
@@ -111,8 +90,6 @@ const int IMG_BUFFER_SIZE = 10 * 1024 * 1024;  // 10 MB
 
 /// Video render needs at least 2 buffers.
 #define VIDEO_OUTPUT_BUFFERS_NUM 3
-
-int mmal_status_to_int(MMAL_STATUS_T status);
 
 /** Structure containing all state information for the current run
  */
@@ -572,33 +549,6 @@ static MMAL_STATUS_T connect_ports(MMAL_PORT_T* output_port, MMAL_PORT_T* input_
 }
 
 /**
- * Checks if specified port is valid and enabled, then disables it
- *
- * @param port  Pointer the port
- *
- */
-static void check_disable_port(MMAL_PORT_T* port) {
-  if (port && port->is_enabled)
-    mmal_port_disable(port);
-}
-
-/**
- * Handler for sigint signals
- *
- * @param signal_number ID of incoming signal.
- *
- */
-static void signal_handler(int signal_number) {
-  // Going to abort on all signals
-  vcos_log_error("Aborting program\n");
-  ROS_ERROR("Aborting program\n");
-
-  // TODO : Need to close any open stuff...how?
-
-  exit(255);
-}
-
-/**
  * init_cam
 
  */
@@ -614,8 +564,6 @@ int init_cam(RASPIVID_STATE& state) {
   bcm_host_init();
   // Register our application with the logging system
   vcos_log_register("RaspiVid", VCOS_LOG_CATEGORY);
-
-  signal(SIGINT, signal_handler);
 
   // OK, we have a nice set of parameters. Now set up our components
   // We have three components. Camera, Preview and encoder.
@@ -820,7 +768,7 @@ int main(int argc, char** argv) {
   start_capture(state_srv);
   ros::spin();
   close_cam(state_srv);
-  return 0;
+  ros::shutdown();
 }
 
 #endif  // __arm__
