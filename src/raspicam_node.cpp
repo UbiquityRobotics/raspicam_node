@@ -124,15 +124,6 @@ struct RASPIVID_STATE {
   mmal::pool_ptr encoder_pool;  // Pointer buffer pool used by encoder (jpg) output
 };
 
-ros::Publisher image_pub;
-ros::Publisher raw_image_pub;
-ros::Publisher camera_info_pub;
-sensor_msgs::CameraInfo c_info;
-std::string tf_prefix;
-std::string camera_frame_id;
-int skip_frames = 0;
-int frames_skipped = 0;
-
 /** Struct used to pass information in encoder port userdata to callback
  */
 typedef struct MMAL_PORT_USERDATA_T {
@@ -143,7 +134,28 @@ typedef struct MMAL_PORT_USERDATA_T {
                                          // the capture
   int frame;
   int id;
+
+  int frames_skipped = 0;
 } PORT_USERDATA;
+
+struct ImagePublisher {
+  ros::Publisher pub;
+  sensor_msgs::Image msg;
+};
+
+static ImagePublisher image;
+
+struct CompressedImagePublisher {
+  ros::Publisher pub;
+  sensor_msgs::CompressedImage msg;
+};
+
+static CompressedImagePublisher compressed_image;
+
+ros::Publisher camera_info_pub;
+sensor_msgs::CameraInfo c_info;
+std::string camera_frame_id;
+int skip_frames = 0;
 
 /**
  * Assign a default set of parameters to the state passed in
@@ -165,7 +177,6 @@ static void configure_parameters(RASPIVID_STATE& state, ros::NodeHandle& nh) {
     state.framerate = 30;
   }
 
-  nh.param<std::string>("tf_prefix", tf_prefix, "");
   nh.param<std::string>("camera_frame_id", camera_frame_id, "");
 
   nh.param<bool>("enable_raw", state.enable_raw_pub, false);
@@ -192,11 +203,7 @@ static void configure_parameters(RASPIVID_STATE& state, ros::NodeHandle& nh) {
  * @param buffer mmal buffer header pointer
  */
 static void encoder_buffer_callback(MMAL_PORT_T* port, MMAL_BUFFER_HEADER_T* buffer) {
-  MMAL_BUFFER_HEADER_T* new_buffer;
-  int complete = 0;
-
-  // We pass our file handle and other stuff in via the userdata field.
-
+  // We pass our own memory and other stuff in via the userdata field.
   PORT_USERDATA* pData = port->userdata;
   if (pData && pData->pstate.isInit) {
     size_t bytes_written = buffer->length;
@@ -221,29 +228,32 @@ static void encoder_buffer_callback(MMAL_PORT_T* port, MMAL_BUFFER_HEADER_T* buf
       ROS_ERROR("Failed to write buffer data (%d from %d)- aborting", bytes_written, buffer->length);
       pData->abort = true;
     }
+
+    bool complete = false;
     if (buffer->flags & (MMAL_BUFFER_HEADER_FLAG_FRAME_END | MMAL_BUFFER_HEADER_FLAG_TRANSMISSION_FAILED))
-      complete = 1;
+      complete = true;
 
     if (complete) {
       if (pData->id != INT_MAX) {
         // ROS_INFO("Frame size %d", pData->id);
-        if (skip_frames > 0 && frames_skipped < skip_frames) {
-          frames_skipped++;
+        if (skip_frames > 0 && pData->frames_skipped < skip_frames) {
+          pData->frames_skipped++;
         } else {
-          frames_skipped = 0;
-          sensor_msgs::CompressedImage msg;
-          msg.header.seq = pData->frame;
-          msg.header.frame_id = camera_frame_id;
-          msg.header.stamp = ros::Time::now();
-          msg.format = "jpg";
+          pData->frames_skipped = 0;
+
+          compressed_image.msg.header.seq = pData->frame;
+          compressed_image.msg.header.frame_id = camera_frame_id;
+          compressed_image.msg.header.stamp = ros::Time::now();
+          compressed_image.msg.format = "jpg";
           auto start = pData->buffer[pData->frame & 1].get();
           auto end = &(pData->buffer[pData->frame & 1].get()[pData->id]);
-          msg.data.reserve(pData->id);
-          std::copy(start, end, std::back_inserter(msg.data));
-          image_pub.publish(msg);
+          compressed_image.msg.data.resize(pData->id);
+          std::copy(start, end, compressed_image.msg.data.begin());
+          compressed_image.pub.publish(compressed_image.msg);
+
           c_info.header.seq = pData->frame;
-          c_info.header.stamp = msg.header.stamp;
-          c_info.header.frame_id = msg.header.frame_id;
+          c_info.header.stamp = compressed_image.msg.header.stamp;
+          c_info.header.frame_id = compressed_image.msg.header.frame_id;
           camera_info_pub.publish(c_info);
           pData->frame++;
         }
@@ -259,7 +269,7 @@ static void encoder_buffer_callback(MMAL_PORT_T* port, MMAL_BUFFER_HEADER_T* buf
   if (port->is_enabled) {
     MMAL_STATUS_T status;
 
-    new_buffer = mmal_queue_get(pData->pstate.encoder_pool->queue);
+    MMAL_BUFFER_HEADER_T* new_buffer = mmal_queue_get(pData->pstate.encoder_pool->queue);
 
     if (new_buffer)
       status = mmal_port_send_buffer(port, new_buffer);
@@ -271,12 +281,9 @@ static void encoder_buffer_callback(MMAL_PORT_T* port, MMAL_BUFFER_HEADER_T* buf
   }
 }
 
+
 static void splitter_buffer_callback(MMAL_PORT_T* port, MMAL_BUFFER_HEADER_T* buffer) {
-  MMAL_BUFFER_HEADER_T* new_buffer;
-  int complete = 0;
-
   // We pass our file handle and other stuff in via the userdata field.
-
   PORT_USERDATA* pData = port->userdata;
   if (pData && pData->pstate.isInit) {
     size_t bytes_written = buffer->length;
@@ -301,26 +308,32 @@ static void splitter_buffer_callback(MMAL_PORT_T* port, MMAL_BUFFER_HEADER_T* bu
       ROS_ERROR("Failed to write buffer data (%d from %d)- aborting", bytes_written, buffer->length);
       pData->abort = true;
     }
+
+    int complete = false;
     if (buffer->flags & (MMAL_BUFFER_HEADER_FLAG_FRAME_END | MMAL_BUFFER_HEADER_FLAG_TRANSMISSION_FAILED))
-      complete = 1;
+      complete = true;
 
     if (complete) {
       if (pData->id != INT_MAX) {
         // ROS_INFO("Frame size %d", pData->id);
-        sensor_msgs::Image msg;
-        msg.header.seq = pData->frame;
-        msg.header.frame_id = camera_frame_id;
-        msg.header.stamp = ros::Time::now();
-        msg.encoding = "bgr8";
-        msg.is_bigendian = false;
-        msg.height = pData->pstate.height;
-        msg.width = pData->pstate.width;
-        msg.step = (pData->pstate.width * 3);
-        auto start = pData->buffer[pData->frame & 1].get();
-        auto end = &(pData->buffer[pData->frame & 1].get()[pData->id]);
-        msg.data.reserve(pData->id);
-        std::copy(start, end, std::back_inserter(msg.data));
-        raw_image_pub.publish(msg);
+        if (skip_frames > 0 && pData->frames_skipped < skip_frames) {
+          pData->frames_skipped++;
+        } else {
+          pData->frames_skipped = 0;
+          image.msg.header.seq = pData->frame;
+          image.msg.header.frame_id = camera_frame_id;
+          image.msg.header.stamp = ros::Time::now();
+          image.msg.encoding = "bgr8";
+          image.msg.is_bigendian = false;
+          image.msg.height = pData->pstate.height;
+          image.msg.width = pData->pstate.width;
+          image.msg.step = (pData->pstate.width * 3);
+          auto start = pData->buffer[pData->frame & 1].get();
+          auto end = &(pData->buffer[pData->frame & 1].get()[pData->id]);
+          image.msg.data.resize(pData->id);
+          std::copy(start, end, image.msg.data.begin());
+          image.pub.publish(image.msg);
+        }
       }
       pData->frame++;
       pData->id = 0;
@@ -334,7 +347,7 @@ static void splitter_buffer_callback(MMAL_PORT_T* port, MMAL_BUFFER_HEADER_T* bu
   if (port->is_enabled) {
     MMAL_STATUS_T status;
 
-    new_buffer = mmal_queue_get(pData->pstate.splitter_pool->queue);
+    MMAL_BUFFER_HEADER_T* new_buffer = mmal_queue_get(pData->pstate.splitter_pool->queue);
 
     if (new_buffer)
       status = mmal_port_send_buffer(port, new_buffer);
@@ -1018,9 +1031,9 @@ int main(int argc, char** argv) {
   }
 
   if (state_srv.enable_raw_pub){
-    raw_image_pub = n.advertise<sensor_msgs::Image>("image/", 1);
+    image.pub = n.advertise<sensor_msgs::Image>("image/", 1);
   }
-  image_pub = n.advertise<sensor_msgs::CompressedImage>("image/compressed", 1);
+  compressed_image.pub = n.advertise<sensor_msgs::CompressedImage>("image/compressed", 1);
   camera_info_pub = n.advertise<sensor_msgs::CameraInfo>("camera_info", 1);
 
   dynamic_reconfigure::Server<raspicam_node::CameraConfig> server;
