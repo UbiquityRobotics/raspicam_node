@@ -65,6 +65,7 @@ int main(int argc, char** argv) {
 #include "ros/ros.h"
 #include "sensor_msgs/CameraInfo.h"
 #include "sensor_msgs/CompressedImage.h"
+#include "sensor_msgs/Image.h"
 #include "sensor_msgs/SetCameraInfo.h"
 #include "std_srvs/Empty.h"
 
@@ -108,6 +109,7 @@ struct RASPIVID_STATE {
   int height;     /// requested height of image
   int framerate;  /// Requested frame rate (fps)
   int quality;
+  bool enable_raw_pub; // Enable Raw publishing
 
   RASPICAM_CAMERA_PARAMETERS camera_parameters;  /// Camera setup parameters
 
@@ -123,6 +125,7 @@ struct RASPIVID_STATE {
 };
 
 ros::Publisher image_pub;
+ros::Publisher raw_image_pub;
 ros::Publisher camera_info_pub;
 sensor_msgs::CameraInfo c_info;
 std::string tf_prefix;
@@ -164,6 +167,8 @@ static void configure_parameters(RASPIVID_STATE& state, ros::NodeHandle& nh) {
 
   nh.param<std::string>("tf_prefix", tf_prefix, "");
   nh.param<std::string>("camera_frame_id", camera_frame_id, "");
+
+  nh.param<bool>("enable_raw", state.enable_raw_pub, false);
 
   // Set up the camera_parameters to default
   raspicamcontrol_set_defaults(state.camera_parameters);
@@ -262,6 +267,81 @@ static void encoder_buffer_callback(MMAL_PORT_T* port, MMAL_BUFFER_HEADER_T* buf
     if (!new_buffer || status != MMAL_SUCCESS) {
       vcos_log_error("Unable to return a buffer to the encoder port");
       ROS_ERROR("Unable to return a buffer to the encoder port");
+    }
+  }
+}
+
+static void splitter_buffer_callback(MMAL_PORT_T* port, MMAL_BUFFER_HEADER_T* buffer) {
+  MMAL_BUFFER_HEADER_T* new_buffer;
+  int complete = 0;
+
+  // We pass our file handle and other stuff in via the userdata field.
+
+  PORT_USERDATA* pData = port->userdata;
+  if (pData && pData->pstate.isInit) {
+    size_t bytes_written = buffer->length;
+    if (buffer->length) {
+      if (pData->id != INT_MAX) {
+        if (pData->id + buffer->length > IMG_BUFFER_SIZE) {
+          ROS_ERROR("pData->id (%d) + buffer->length (%d) > "
+                    "IMG_BUFFER_SIZE (%d), skipping the frame",
+                    pData->id, buffer->length, IMG_BUFFER_SIZE);
+          pData->id = INT_MAX;  // mark this frame corrupted
+        } else {
+          mmal_buffer_header_mem_lock(buffer);
+          memcpy(&(pData->buffer[pData->frame & 1].get()[pData->id]), buffer->data, buffer->length);
+          pData->id += bytes_written;
+          mmal_buffer_header_mem_unlock(buffer);
+        }
+      }
+    }
+
+    if (bytes_written != buffer->length) {
+      vcos_log_error("Failed to write buffer data (%d from %d)- aborting", bytes_written, buffer->length);
+      ROS_ERROR("Failed to write buffer data (%d from %d)- aborting", bytes_written, buffer->length);
+      pData->abort = true;
+    }
+    if (buffer->flags & (MMAL_BUFFER_HEADER_FLAG_FRAME_END | MMAL_BUFFER_HEADER_FLAG_TRANSMISSION_FAILED))
+      complete = 1;
+
+    if (complete) {
+      if (pData->id != INT_MAX) {
+        // ROS_INFO("Frame size %d", pData->id);
+        sensor_msgs::Image msg;
+        msg.header.seq = pData->frame;
+        msg.header.frame_id = camera_frame_id;
+        msg.header.stamp = ros::Time::now();
+        msg.encoding = "bgr8";
+        msg.is_bigendian = false;
+        msg.height = pData->pstate.height;
+        msg.width = pData->pstate.width;
+        msg.step = (pData->pstate.width * 3);
+        auto start = pData->buffer[pData->frame & 1].get();
+        auto end = &(pData->buffer[pData->frame & 1].get()[pData->id]);
+        msg.data.reserve(pData->id);
+        std::copy(start, end, std::back_inserter(msg.data));
+        raw_image_pub.publish(msg);
+      }
+      pData->frame++;
+      pData->id = 0;
+    }
+  }
+
+  // release buffer back to the pool
+  mmal_buffer_header_release(buffer);
+
+  // and send one back to the port (if still open)
+  if (port->is_enabled) {
+    MMAL_STATUS_T status;
+
+    new_buffer = mmal_queue_get(pData->pstate.splitter_pool->queue);
+
+    if (new_buffer)
+      status = mmal_port_send_buffer(port, new_buffer);
+
+    if (!new_buffer || status != MMAL_SUCCESS) {
+      vcos_log_error("Unable to return a buffer to the splitter port");
+      ROS_ERROR("Unable to return a buffer to the splitter port");
     }
   }
 }
@@ -583,7 +663,7 @@ static MMAL_STATUS_T create_splitter_component(RASPIVID_STATE& state) {
   format->encoding = MMAL_ENCODING_BGR24;
   format->encoding_variant = 0;  /* Irrelevant when not in opaque mode */
 
-  status = mmal_port_format_commit(splitter_output_enc);
+  status = mmal_port_format_commit(splitter_output_raw);
 
   if (status != MMAL_SUCCESS) {
      vcos_log_error("Unable to set format on splitter output port for raw");
@@ -710,7 +790,6 @@ int init_cam(RASPIVID_STATE& state) {
     camera_video_port = state.camera_component->output[MMAL_CAMERA_VIDEO_PORT];
     splitter_input_port = state.splitter_component->input[0];
     splitter_output_enc = state.splitter_component->output[0];
-    splitter_output_raw = state.splitter_component->output[1];
     encoder_input_port = state.encoder_component->input[0];
 
     status = connect_ports(camera_video_port, splitter_input_port, state.splitter_connection);
@@ -719,11 +798,13 @@ int init_cam(RASPIVID_STATE& state) {
       return 1;
     }
 
+
     status = connect_ports(splitter_output_enc, encoder_input_port, state.encoder_connection);
     if (status != MMAL_SUCCESS) {
       ROS_ERROR("%s: Failed to connect camera splitter port to encoder input", __func__);
       return 1;
     }
+
     encoder_output_port = state.encoder_component->output[0];
 
     PORT_USERDATA* callback_data_enc = new PORT_USERDATA(state);
@@ -741,6 +822,26 @@ int init_cam(RASPIVID_STATE& state) {
       ROS_ERROR("Failed to setup encoder output");
       return 1;
     }
+
+    if (state.enable_raw_pub) {
+      splitter_output_raw = state.splitter_component->output[1];
+
+      PORT_USERDATA* callback_data_raw = new PORT_USERDATA(state);
+      callback_data_raw->buffer[0] = std::make_unique<uint8_t[]>(IMG_BUFFER_SIZE);
+      callback_data_raw->buffer[1] = std::make_unique<uint8_t[]>(IMG_BUFFER_SIZE);
+      // Set up our userdata - this is passed though to the callback where we
+      // need the information.
+      callback_data_raw->abort = false;
+      callback_data_raw->id = 0;
+      callback_data_raw->frame = 0;
+      splitter_output_raw->userdata = callback_data_raw;
+      // Enable the encoder output port and tell it its callback function
+      status = mmal_port_enable(splitter_output_raw, splitter_buffer_callback);
+      if (status != MMAL_SUCCESS) {
+        ROS_ERROR("Failed to setup encoder output");
+        return 1;
+      }
+    }
     state.isInit = true;
   }
   return 0;
@@ -752,6 +853,7 @@ int start_capture(RASPIVID_STATE& state) {
 
   MMAL_PORT_T* camera_video_port = state.camera_component->output[MMAL_CAMERA_VIDEO_PORT];
   MMAL_PORT_T* encoder_output_port = state.encoder_component->output[0];
+  MMAL_PORT_T* splitter_output_raw = state.splitter_component->output[1];
   ROS_INFO("Starting video capture (%d, %d, %d, %d)\n", state.width, state.height, state.quality, state.framerate);
 
   if (mmal_port_parameter_set_boolean(camera_video_port, MMAL_PARAMETER_CAPTURE, 1) != MMAL_SUCCESS) {
@@ -772,6 +874,24 @@ int start_capture(RASPIVID_STATE& state) {
       if (mmal_port_send_buffer(encoder_output_port, buffer) != MMAL_SUCCESS) {
         vcos_log_error("Unable to send a buffer to encoder output port (%d)", q);
         ROS_ERROR("Unable to send a buffer to encoder output port (%d)", q);
+      }
+    }
+  }
+  // Send all the buffers to the splitter output port
+  if (state.enable_raw_pub) {
+    int num = mmal_queue_length(state.splitter_pool->queue);
+    int q;
+    for (q = 0; q < num; q++) {
+      MMAL_BUFFER_HEADER_T* buffer = mmal_queue_get(state.splitter_pool->queue);
+
+      if (!buffer) {
+        vcos_log_error("Unable to get a required buffer %d from pool queue", q);
+        ROS_ERROR("Unable to get a required buffer %d from pool queue", q);
+      }
+
+      if (mmal_port_send_buffer(splitter_output_raw, buffer) != MMAL_SUCCESS) {
+        vcos_log_error("Unable to send a buffer to splitter output port (%d)", q);
+        ROS_ERROR("Unable to send a buffer to splitter output port (%d)", q);
       }
     }
   }
@@ -806,7 +926,9 @@ int close_cam(RASPIVID_STATE& state) {
       // Get rid of any port buffers first
       state.splitter_pool.reset(nullptr);
       // Delete callback structure
-      delete splitter->output[0]->userdata;
+      if (splitter->output[1]->userdata) {
+        delete splitter->output[1]->userdata;
+      }
       state.splitter_component.reset(nullptr);
     }
 
@@ -895,6 +1017,9 @@ int main(int argc, char** argv) {
     ROS_INFO("Camera successfully calibrated from device specifc file");
   }
 
+  if (state_srv.enable_raw_pub){
+    raw_image_pub = n.advertise<sensor_msgs::Image>("image/", 1);
+  }
   image_pub = n.advertise<sensor_msgs::CompressedImage>("image/compressed", 1);
   camera_info_pub = n.advertise<sensor_msgs::CameraInfo>("camera_info", 1);
 
