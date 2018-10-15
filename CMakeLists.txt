@@ -117,6 +117,8 @@ include_directories(include
   /opt/vc/include/interface/vmcs_host/linux
 )
 
+add_compile_options(-Wall -Wuseless-cast -Wformat-nonliteral)
+
 ## Declare a cpp executable
 add_executable(raspicam_node src/raspicam_node.cpp src/RaspiCamControl.cpp)
 

@@ -370,7 +370,7 @@ static const char* unmap_xref(const int en, XREF_T* map, int num_refs) {
  * @return MMAL parameter matching the string, or the AUTO option if no match
  * found
  */
-/*static*/ MMAL_PARAM_AWBMODE_T awb_mode_from_string(const char* str) {
+MMAL_PARAM_AWBMODE_T awb_mode_from_string(const char* str) {
   int i = map_xref(str, awb_map, awb_map_size);
 
   if (i != -1)
@@ -402,7 +402,7 @@ MMAL_PARAM_IMAGEFX_T imagefx_mode_from_string(const char* str) {
  * @return MMAL parameter matching the string, or the AUTO option if no match
  * found
  */
-static MMAL_PARAM_EXPOSUREMETERINGMODE_T metering_mode_from_string(const char* str) {
+MMAL_PARAM_EXPOSUREMETERINGMODE_T metering_mode_from_string(const char* str) {
   int i = map_xref(str, metering_mode_map, metering_mode_map_size);
 
   if (i != -1)
