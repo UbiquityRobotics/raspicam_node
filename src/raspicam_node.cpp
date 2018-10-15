@@ -229,9 +229,9 @@ static void encoder_buffer_callback(MMAL_PORT_T* port, MMAL_BUFFER_HEADER_T* buf
       pData->abort = true;
     }
 
-    int complete = 0;
+    bool complete = false;
     if (buffer->flags & (MMAL_BUFFER_HEADER_FLAG_FRAME_END | MMAL_BUFFER_HEADER_FLAG_TRANSMISSION_FAILED))
-      complete = 1;
+      complete = true;
 
     if (complete) {
       if (pData->id != INT_MAX) {
@@ -309,9 +309,9 @@ static void splitter_buffer_callback(MMAL_PORT_T* port, MMAL_BUFFER_HEADER_T* bu
       pData->abort = true;
     }
 
-    int complete = 0;
+    int complete = false;
     if (buffer->flags & (MMAL_BUFFER_HEADER_FLAG_FRAME_END | MMAL_BUFFER_HEADER_FLAG_TRANSMISSION_FAILED))
-      complete = 1;
+      complete = true;
 
     if (complete) {
       if (pData->id != INT_MAX) {
