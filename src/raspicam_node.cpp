@@ -103,6 +103,8 @@ struct RASPIVID_STATE {
   int quality;
   bool enable_raw_pub; // Enable Raw publishing
 
+  int camera_id = 0;
+
   RASPICAM_CAMERA_PARAMETERS camera_parameters;  /// Camera setup parameters
 
   mmal::component_ptr camera_component;
@@ -172,6 +174,7 @@ static void configure_parameters(RASPIVID_STATE& state, ros::NodeHandle& nh) {
   nh.param<std::string>("camera_frame_id", camera_frame_id, "");
 
   nh.param<bool>("enable_raw", state.enable_raw_pub, false);
+  nh.param<int>("camera_id", state.camera_id, 0);
 
   // Set up the camera_parameters to default
   raspicamcontrol_set_defaults(state.camera_parameters);
@@ -400,6 +403,20 @@ static MMAL_COMPONENT_T* create_camera_component(RASPIVID_STATE& state) {
     cam_config.use_stc_timestamp = MMAL_PARAM_TIMESTAMP_MODE_RESET_STC;
 
     mmal_port_parameter_set(camera->control, &cam_config.hdr);
+  }
+
+  // Select the camera to use
+  {  
+    MMAL_PARAMETER_INT32_T camera_num;
+    camera_num.hdr.id = MMAL_PARAMETER_CAMERA_NUM;
+    camera_num.hdr.size = sizeof(camera_num);
+    camera_num.value = state.camera_id;
+
+    status = mmal_port_parameter_set(camera->control, &camera_num.hdr);
+    if (status != MMAL_SUCCESS) {
+      ROS_ERROR("Could not select camera : error %d", status);
+      goto error;
+    }
   }
 
   // Now set up the port formats
