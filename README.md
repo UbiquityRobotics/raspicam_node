@@ -96,6 +96,10 @@ Parameters:
 
 * `quality` (0-100): Quality of the captured images.
 
+* `enable_raw` (bool): Publish a raw image (takes more CPU and memory)
+
+* `camera_id` (int): The camera id (only supported on Compute Module)
+
 ## Calibration
 
 The raspicam_node package contains a calibration file for the raspberry
