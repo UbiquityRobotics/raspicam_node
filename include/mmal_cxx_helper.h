@@ -40,4 +40,18 @@ void default_delete_pool(MMAL_POOL_T* ptr) {
   }
 }
 typedef std::unique_ptr<MMAL_POOL_T, std::function<void(MMAL_POOL_T*)>> pool_ptr;
-}
+
+
+// Standard ports for the camera component
+struct camera_port
+{
+  // We can't use an enum class here, we rely on implictly converting to an int
+  // which is not allowed for an enum class
+  enum {
+    preview = 0,
+    video = 1,
+    capture = 2
+  };
+};
+
+} 
