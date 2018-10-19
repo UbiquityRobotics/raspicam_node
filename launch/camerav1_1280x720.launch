@@ -7,8 +7,6 @@
     <param name="height" value="720"/>
     <!-- We are running at 90fps to reduce motion blur -->
     <param name="framerate" value="90"/>
-    <param name="hFlip" value="true"/>
-    <param name="vFlip" value="true"/>
 
     <param name="camera_frame_id" value="raspicam"/> 
 
