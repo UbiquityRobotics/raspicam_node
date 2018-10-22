@@ -76,21 +76,13 @@ int main(int argc, char** argv) {
 
 #include "mmal_cxx_helper.h"
 
-const int IMG_BUFFER_SIZE = 10 * 1024 * 1024;  // 10 MB
-/// Camera number to use - we only have one camera, indexed from 0.
-#define CAMERA_NUMBER 0
-
-// Standard port setting for the camera component
-#define MMAL_CAMERA_PREVIEW_PORT 0
-#define MMAL_CAMERA_VIDEO_PORT 1
-#define MMAL_CAMERA_CAPTURE_PORT 2
+static constexpr int IMG_BUFFER_SIZE = 10 * 1024 * 1024;  // 10 MB
 
 // Video format information
-#define VIDEO_FRAME_RATE_NUM 30
-#define VIDEO_FRAME_RATE_DEN 1
+static constexpr int VIDEO_FRAME_RATE_DEN = 3;
 
-/// Video render needs at least 2 buffers.
-#define VIDEO_OUTPUT_BUFFERS_NUM 3
+// Video render needs at least 2 buffers.
+static constexpr int VIDEO_OUTPUT_BUFFERS_NUM = 3;
 
 /** Structure containing all state information for the current run
  */
@@ -110,6 +102,8 @@ struct RASPIVID_STATE {
   int framerate;  /// Requested frame rate (fps)
   int quality;
   bool enable_raw_pub; // Enable Raw publishing
+
+  int camera_id = 0;
 
   RASPICAM_CAMERA_PARAMETERS camera_parameters;  /// Camera setup parameters
 
@@ -180,6 +174,7 @@ static void configure_parameters(RASPIVID_STATE& state, ros::NodeHandle& nh) {
   nh.param<std::string>("camera_frame_id", camera_frame_id, "");
 
   nh.param<bool>("enable_raw", state.enable_raw_pub, false);
+  nh.param<int>("camera_id", state.camera_id, 0);
 
   // Set up the camera_parameters to default
   raspicamcontrol_set_defaults(state.camera_parameters);
@@ -388,8 +383,8 @@ static MMAL_COMPONENT_T* create_camera_component(RASPIVID_STATE& state) {
     goto error;
   }
 
-  video_port = camera->output[MMAL_CAMERA_VIDEO_PORT];
-  still_port = camera->output[MMAL_CAMERA_CAPTURE_PORT];
+  video_port = camera->output[mmal::camera_port::video];
+  still_port = camera->output[mmal::camera_port::capture];
 
   //  set up the camera configuration
   {
@@ -408,6 +403,20 @@ static MMAL_COMPONENT_T* create_camera_component(RASPIVID_STATE& state) {
     cam_config.use_stc_timestamp = MMAL_PARAM_TIMESTAMP_MODE_RESET_STC;
 
     mmal_port_parameter_set(camera->control, &cam_config.hdr);
+  }
+
+  // Select the camera to use
+  {  
+    MMAL_PARAMETER_INT32_T camera_num;
+    camera_num.hdr.id = MMAL_PARAMETER_CAMERA_NUM;
+    camera_num.hdr.size = sizeof(camera_num);
+    camera_num.value = state.camera_id;
+
+    status = mmal_port_parameter_set(camera->control, &camera_num.hdr);
+    if (status != MMAL_SUCCESS) {
+      ROS_ERROR("Could not select camera : error %d", status);
+      goto error;
+    }
   }
 
   // Now set up the port formats
@@ -635,7 +644,7 @@ static MMAL_STATUS_T create_splitter_component(RASPIVID_STATE& state) {
   splitter_input = splitter->input[0];
 
   // We want same format on input as camera output
-  mmal_format_copy(splitter_input->format, state.camera_component->output[MMAL_CAMERA_VIDEO_PORT]->format);
+  mmal_format_copy(splitter_input->format, state.camera_component->output[mmal::camera_port::video]->format);
 
   if (splitter->input[0]->buffer_num < VIDEO_OUTPUT_BUFFERS_NUM)
     splitter->input[0]->buffer_num = VIDEO_OUTPUT_BUFFERS_NUM;
@@ -800,7 +809,7 @@ int init_cam(RASPIVID_STATE& state) {
     state.encoder_component.reset(nullptr);
     state.camera_component.reset(nullptr);
   } else {
-    camera_video_port = state.camera_component->output[MMAL_CAMERA_VIDEO_PORT];
+    camera_video_port = state.camera_component->output[mmal::camera_port::video];
     splitter_input_port = state.splitter_component->input[0];
     splitter_output_enc = state.splitter_component->output[0];
     encoder_input_port = state.encoder_component->input[0];
@@ -864,7 +873,7 @@ int start_capture(RASPIVID_STATE& state) {
   if (!(state.isInit))
     ROS_FATAL("Tried to start capture before camera is inited");
 
-  MMAL_PORT_T* camera_video_port = state.camera_component->output[MMAL_CAMERA_VIDEO_PORT];
+  MMAL_PORT_T* camera_video_port = state.camera_component->output[mmal::camera_port::video];
   MMAL_PORT_T* encoder_output_port = state.encoder_component->output[0];
   MMAL_PORT_T* splitter_output_raw = state.splitter_component->output[1];
   ROS_INFO("Starting video capture (%d, %d, %d, %d)\n", state.width, state.height, state.quality, state.framerate);
