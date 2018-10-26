@@ -118,11 +118,16 @@ full scale.  They can be printed on more common printer sizes
 with auto scaling turned on.  Be sure to carefully measure the
 square size in millimeters and convert to meters by dividing by 1000.
 
-A camera calibration can be run with the following commands:
+Running calibration requires raw publishing enabled. Add `enable_raw:=true` to the camera roslaunch command.
 
-    $ rosrun image_transport republish compressed in:=/raspicam_node/image raw out:=/raspicam_node/image
-    $ rosrun camera_calibration cameracalibrator.py --size 8x6 --square 0.074 image:=/raspicam_node/image camera:=/raspicam_node
-    
+If you are not sure which launch file to use `camerav2_1280x960_10fps.launch` is probably what you are looking for.
 
-By default the camera calibrations are saved in the 
-camera_info directory of this package.
+On the Pi
+```
+roslaunch raspicam_node camerav2_1280x960_10fps.launch enable_raw:=true
+```
+
+On your workstation:
+```
+rosrun camera_calibration cameracalibrator.py --size 8x6 --square 0.074 image:=/raspicam_node/image camera:=/raspicam_node
+```
