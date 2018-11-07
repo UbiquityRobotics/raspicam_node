@@ -2,8 +2,8 @@
 Changelog for package raspicam
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.4.0 (2018-11-07)
+------------------
 * Add support for optionally publishing raw image
 * Add parameter for selecting the camera id (Compute Module)
 * Don't allocate new messages for every frame
