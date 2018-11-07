@@ -2,6 +2,21 @@
 Changelog for package raspicam
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Add support for optionally publishing raw image
+* Add parameter for selecting the camera id (Compute Module)
+* Don't allocate new messages for every frame
+* Cleanup log noise
+* Fix gcc warnings (enable -Wall)
+* Fix dynamic reconfigure bug (Fixes `#31 <https://github.com/UbiquityRobotics/raspicam_node/issues/31>`_)
+* Remove old unused cruft
+* Use unique_ptr with custom deleters to manage mmal components
+* Pass state around by reference instead of as a global
+* Use C++14
+* Use clang format from https://github.com/davetcoleman/roscpp_code_format
+* Contributors: Jose Eduardo Laruta Espejo, Rohan Agrawal
+
 0.3.0 (2018-09-28)
 ------------------
 * use user writeable calibration after the package one
