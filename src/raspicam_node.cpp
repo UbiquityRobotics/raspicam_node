@@ -68,7 +68,7 @@ int main(int argc, char** argv) {
 #include "sensor_msgs/Image.h"
 #include "sensor_msgs/SetCameraInfo.h"
 #include "std_srvs/Empty.h"
-#include "std_msgs/UInt8MultiArray.h"
+#include "raspicam_node/MotionVector.h"
 
 #include "RaspiCamControl.h"
 
@@ -156,7 +156,7 @@ static CompressedImagePublisher compressed_image;
 
 struct MotionVectorsPublisher {
   ros::Publisher pub;
-  std_msgs::UInt8MultiArray msg;
+  raspicam_node::MotionVector msg;
 };
 
 static MotionVectorsPublisher motion_vectors;
@@ -305,16 +305,45 @@ static void video_encoder_buffer_callback(MMAL_PORT_T* port, MMAL_BUFFER_HEADER_
   PORT_USERDATA* pData = port->userdata;
 
   if (buffer->flags & MMAL_BUFFER_HEADER_FLAG_CODECSIDEINFO) {
+    // Frame information
+    motion_vectors.msg.header.seq = pData->frame;
+    motion_vectors.msg.header.frame_id = camera_frame_id;
+    motion_vectors.msg.header.stamp = ros::Time::now();
+
+    // Number of 16*16px macroblocks
+    motion_vectors.msg.mbx = pData->pstate.width / 16;
+    if (pData->pstate.width % 16)
+      motion_vectors.msg.mbx++;
+
+    motion_vectors.msg.mby = pData->pstate.height / 16;
+    if (pData->pstate.height % 16)
+      motion_vectors.msg.mby++;
+
     mmal_buffer_header_mem_lock(buffer);
 
-    auto start = buffer->data;
-    auto end = &buffer->data[buffer->length];
-    motion_vectors.msg.data.resize(buffer->length);
-    std::copy(start, end, motion_vectors.msg.data.begin());
+    // Motion vector data
+    struct __attribute__((__packed__)) imv {
+      int8_t x;
+      int8_t y;
+      uint16_t sad;
+    } *imv = (struct imv *)buffer->data;
+
+    size_t num_elements = buffer->length / sizeof(struct imv);
+    motion_vectors.msg.x.resize(num_elements);
+    motion_vectors.msg.y.resize(num_elements);
+    motion_vectors.msg.sad.resize(num_elements);
+
+    for (size_t i = 0; i < num_elements; i++) {
+      motion_vectors.msg.x[i] = imv->x;
+      motion_vectors.msg.y[i] = imv->y;
+      motion_vectors.msg.sad[i] = imv->sad;
+      imv++;
+    }
 
     mmal_buffer_header_mem_unlock(buffer);
 
     motion_vectors.pub.publish(motion_vectors.msg);
+    pData->frame++;
   }
 
   // release buffer back to the pool
@@ -1311,7 +1340,7 @@ int main(int argc, char** argv) {
     image.pub = n.advertise<sensor_msgs::Image>("image/", 1);
   }
   if (state_srv.enable_imv_pub) {
-    motion_vectors.pub = n.advertise<std_msgs::UInt8MultiArray>("motion_vectors", 1);
+    motion_vectors.pub = n.advertise<raspicam_node::MotionVector>("motion_vectors", 1);
   }
   compressed_image.pub = n.advertise<sensor_msgs::CompressedImage>("image/compressed", 1);
   camera_info_pub = n.advertise<sensor_msgs::CameraInfo>("camera_info", 1);
