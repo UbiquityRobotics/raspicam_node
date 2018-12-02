@@ -139,3 +139,30 @@ On your workstation:
 ```
 rosrun camera_calibration cameracalibrator.py --size 8x6 --square 0.074 image:=/raspicam_node/image camera:=/raspicam_node
 ```
+
+## Motion vectors
+
+The raspicam_node is able to output [motion vectors](https://www.raspberrypi.org/blog/vectors-from-coarse-motion-estimation/) calculated by the Raspberry Pi's hardware video encoder. These motion vectors can be used for various applications such as motion detection.
+
+On the Pi, add `enable_imv:=true` to the camera roslaunch command:
+
+```
+roslaunch raspicam_node camerav2_410x308_30fps.launch enable_imv:=true
+```
+
+On your workstation, build raspicam_node so that the `MotionVectors` ROS message is recognized by Python:
+
+```
+cd ~/catkin_ws
+catkin_make
+catkin_make install
+
+source ~/.bashrc/devel/setup.bash
+```
+
+Finally, run script `raspicam_view.py` to visualize the motion vectors:
+
+```
+cd raspicam_node/tools
+./raspicam_view.py
+```
