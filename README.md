@@ -155,14 +155,11 @@ On your workstation, build raspicam_node so that the `MotionVectors` ROS message
 ```
 cd ~/catkin_ws
 catkin_make
-catkin_make install
-
-source ~/.bashrc/devel/setup.bash
+source ~/catkin_ws/devel/setup.bash
 ```
 
 Finally, run script `raspicam_view.py` to visualize the motion vectors:
 
 ```
-cd raspicam_node/tools
-./raspicam_view.py
+rosrun raspicam_node raspicam_view.py
 ```
