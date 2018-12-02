@@ -76,6 +76,9 @@ Topics:
 * `/raspicam_node/image`:
   Publishes `sensor_msgs/Image` from the camera module (if parameter `enable_raw` is set).
 
+* `/raspicam_node/motion_vectors`:
+  Publishes `raspicam_node/MotionVectors` from the camera module (if parameter `enable_imv` is set).
+
 * `/raspicam_node/camera_info`:
   Publishes `sensor_msgs/CameraInfo` camera info for each frame.
 
@@ -100,6 +103,8 @@ Parameters:
 * `quality` (0-100): Quality of the captured images.
 
 * `enable_raw` (bool): Publish a raw image (takes more CPU and memory)
+
+* `enable_imv` (bool): Publish inline motion vectors computed by the GPU
 
 * `camera_id` (int): The camera id (only supported on Compute Module)
 
