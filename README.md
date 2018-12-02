@@ -158,8 +158,8 @@ catkin_make
 source ~/catkin_ws/devel/setup.bash
 ```
 
-Finally, run script `raspicam_view.py` to visualize the motion vectors:
+Finally, run script `imv_view.py` to visualize the motion vectors:
 
 ```
-rosrun raspicam_node raspicam_view.py
+rosrun raspicam_node imv_view.py
 ```

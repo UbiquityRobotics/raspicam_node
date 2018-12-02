@@ -60,7 +60,7 @@ def img_callback(msg):
 	else:
 		if last_imv is not None:
 			draw_imv(img, last_imv)
-		cv2.imshow('raspicam_node viewer', img)
+		cv2.imshow('raspicam_node motion vectors visualization', img)
 		cv2.waitKey(25)
 
 def imv_callback(msg):
@@ -74,7 +74,7 @@ def main():
 	img_topic = '/raspicam_node/image/compressed'
 	imv_topic = '/raspicam_node/motion_vectors'
 
-	rospy.init_node('raspicam_view')
+	rospy.init_node('imv_view')
 	rospy.Subscriber(img_topic, CompressedImage, img_callback)
 	rospy.Subscriber(imv_topic, MotionVectors, imv_callback)
 	rospy.spin()
