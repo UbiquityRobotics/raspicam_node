@@ -326,7 +326,7 @@ static void video_encoder_buffer_callback(MMAL_PORT_T* port, MMAL_BUFFER_HEADER_
       int8_t x;
       int8_t y;
       uint16_t sad;
-    } *imv = (struct imv *)buffer->data;
+    } *imv = reinterpret_cast<struct imv *>(buffer->data);
 
     size_t num_elements = buffer->length / sizeof(struct imv);
     motion_vectors.msg.x.resize(num_elements);
