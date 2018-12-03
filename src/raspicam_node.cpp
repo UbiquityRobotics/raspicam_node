@@ -68,7 +68,7 @@ int main(int argc, char** argv) {
 #include "sensor_msgs/Image.h"
 #include "sensor_msgs/SetCameraInfo.h"
 #include "std_srvs/Empty.h"
-#include "raspicam_node/MotionVector.h"
+#include "raspicam_node/MotionVectors.h"
 
 #include "RaspiCamControl.h"
 
@@ -156,7 +156,7 @@ static CompressedImagePublisher compressed_image;
 
 struct MotionVectorsPublisher {
   ros::Publisher pub;
-  raspicam_node::MotionVector msg;
+  raspicam_node::MotionVectors msg;
 };
 
 static MotionVectorsPublisher motion_vectors;
@@ -1340,7 +1340,7 @@ int main(int argc, char** argv) {
     image.pub = n.advertise<sensor_msgs::Image>("image/", 1);
   }
   if (state_srv.enable_imv_pub) {
-    motion_vectors.pub = n.advertise<raspicam_node::MotionVector>("motion_vectors", 1);
+    motion_vectors.pub = n.advertise<raspicam_node::MotionVectors>("motion_vectors", 1);
   }
   compressed_image.pub = n.advertise<sensor_msgs::CompressedImage>("image/compressed", 1);
   camera_info_pub = n.advertise<sensor_msgs::CameraInfo>("camera_info", 1);
