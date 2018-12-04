@@ -19,6 +19,8 @@
   <depend>dynamic_reconfigure</depend>
   <depend>libraspberrypi0</depend>
   <build_depend>libraspberrypi-dev</build_depend>
+  <build_depend>message_generation</build_depend>
+  <exec_depend>message_runtime</exec_depend>
 
   <export>
   </export>

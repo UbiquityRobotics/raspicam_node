@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   camera_info_manager
   dynamic_reconfigure
+  message_generation
 )
 
 ## System dependencies are found with CMake's conventions
@@ -64,11 +65,10 @@ ENDIF()
 #######################################
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+add_message_files(
+  FILES
+  MotionVectors.msg
+)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -78,10 +78,10 @@ ENDIF()
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs
-# )
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
 
 #add dynamic reconfigure api
 generate_dynamic_reconfigure_options(
@@ -102,6 +102,7 @@ catkin_package(
 #  LIBRARIES raspicam
 #  CATKIN_DEPENDS compressed_image_transport roscpp std_msgs
 #  DEPENDS system_lib
+   CATKIN_DEPENDS message_runtime std_msgs
 )
 
 ###########
@@ -123,8 +124,7 @@ add_compile_options(-Wall -Wuseless-cast -Wformat-nonliteral)
 add_executable(raspicam_node src/raspicam_node.cpp src/RaspiCamControl.cpp)
 
 ## Add cmake target dependencies of the executable/library
-## as an example, message headers may need to be generated before nodes
-# add_dependencies(raspicam_node raspicam_generate_messages_cpp)
+add_dependencies(raspicam_node raspicam_node_generate_messages_cpp)
 add_dependencies(raspicam_node raspicam_node_gencfg)
 
 ## Specify libraries to link a library or executable target against

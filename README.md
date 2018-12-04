@@ -70,8 +70,14 @@ make sure that the camera cable is properly seated on both ends, and that the ca
 
 Topics:
 
-* `/raspicam_node/compressed`:
+* `/raspicam_node/image/compressed`:
   Publishes `sensor_msgs/CompressedImage` with jpeg from the camera module.
+
+* `/raspicam_node/image`:
+  Publishes `sensor_msgs/Image` from the camera module (if parameter `enable_raw` is set).
+
+* `/raspicam_node/motion_vectors`:
+  Publishes `raspicam_node/MotionVectors` from the camera module (if parameter `enable_imv` is set).
 
 * `/raspicam_node/camera_info`:
   Publishes `sensor_msgs/CameraInfo` camera info for each frame.
@@ -97,6 +103,8 @@ Parameters:
 * `quality` (0-100): Quality of the captured images.
 
 * `enable_raw` (bool): Publish a raw image (takes more CPU and memory)
+
+* `enable_imv` (bool): Publish inline motion vectors computed by the GPU
 
 * `camera_id` (int): The camera id (only supported on Compute Module)
 
@@ -130,4 +138,28 @@ roslaunch raspicam_node camerav2_1280x960_10fps.launch enable_raw:=true
 On your workstation:
 ```
 rosrun camera_calibration cameracalibrator.py --size 8x6 --square 0.074 image:=/raspicam_node/image camera:=/raspicam_node
+```
+
+## Motion vectors
+
+The raspicam_node is able to output [motion vectors](https://www.raspberrypi.org/blog/vectors-from-coarse-motion-estimation/) calculated by the Raspberry Pi's hardware video encoder. These motion vectors can be used for various applications such as motion detection.
+
+On the Pi, add `enable_imv:=true` to the camera roslaunch command:
+
+```
+roslaunch raspicam_node camerav2_410x308_30fps.launch enable_imv:=true
+```
+
+On your workstation, build raspicam_node so that the `MotionVectors` ROS message is recognized by Python:
+
+```
+cd ~/catkin_ws
+catkin_make
+source ~/catkin_ws/devel/setup.bash
+```
+
+Finally, run script `imv_view.py` to visualize the motion vectors:
+
+```
+rosrun raspicam_node imv_view.py
 ```
