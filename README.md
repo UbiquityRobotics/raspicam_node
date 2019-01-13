@@ -1,6 +1,6 @@
 # raspicam_node
 
-ROS node for the Raspberry Pi Camera Module. Works with both the V1.x and V2.x versions of the module. We recommend using the v2.x cameras as they have better auto gain, and the general image quality is better. 
+ROS node for the Raspberry Pi Camera Module. Works with both the V1.x and V2.x versions of the module. We recommend using the v2.x cameras as they have better auto gain, and the general image quality is better.
 
 ## Installation
 
@@ -26,7 +26,7 @@ yaml https://raw.githubusercontent.com/UbiquityRobotics/rosdep/master/raspberry-
 
 Then run `rosdep update`.
 
-Install the ros dependencies, 
+Install the ros dependencies,
 
 ```
 cd ~/catkin_ws
@@ -50,7 +50,7 @@ The `raspicam_node` supports dynamically reconfiguring the camera parameters.
 Run the dynamic reconfigure node on a connected computer:
 
 ```
-rosrun rqt_reconfigure rqt_reconfigure 
+rosrun rqt_reconfigure rqt_reconfigure
 ```
 
 It should bring up a user interface like the one below.  Paramaters can be dynamically adjusted via this interface.
@@ -70,16 +70,16 @@ make sure that the camera cable is properly seated on both ends, and that the ca
 
 Topics:
 
-* `/raspicam_node/image/compressed`:
+* `raspicam_node/image/compressed`:
   Publishes `sensor_msgs/CompressedImage` with jpeg from the camera module.
 
-* `/raspicam_node/image`:
+* `raspicam_node/image`:
   Publishes `sensor_msgs/Image` from the camera module (if parameter `enable_raw` is set).
 
-* `/raspicam_node/motion_vectors`:
+* `raspicam_node/motion_vectors`:
   Publishes `raspicam_node/MotionVectors` from the camera module (if parameter `enable_imv` is set).
 
-* `/raspicam_node/camera_info`:
+* `raspicam_node/camera_info`:
   Publishes `sensor_msgs/CameraInfo` camera info for each frame.
 
 Services:
@@ -87,6 +87,11 @@ Services:
 * `/set_camera_info`: Used to update calibration info for the camera.
 
 Parameters:
+
+* `topic_prefix` (string): The prefix to apply to every topic.
+By default the prefix is "~", which means the topics are private and start with the node name.
+If you change the prefix to "abc", every topic will start with "abc" instead of "raspicam_node" (or the node name you defined).
+This parameter can be seen as redundant with namespaces but it is there for backward compatibility.
 
 * `camera_frame_id` (tf frame): The frame identifier to associate the camera.
 
@@ -113,7 +118,7 @@ Parameters:
 The raspicam_node package contains a calibration file for the raspberry
 PI camera versions 1 and 2.
 
-A tutorial 
+A tutorial
   [Monocular Camera Calibration tutorial](http://wiki.ros.org/camera_calibration/Tutorials/MonocularCalibration)
 shows how to calibrate a single camera.
 
