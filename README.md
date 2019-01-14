@@ -70,16 +70,16 @@ make sure that the camera cable is properly seated on both ends, and that the ca
 
 Topics:
 
-* `raspicam_node/image/compressed`:
+* `~/image/compressed`:
   Publishes `sensor_msgs/CompressedImage` with jpeg from the camera module.
 
-* `raspicam_node/image`:
+* `~/image`:
   Publishes `sensor_msgs/Image` from the camera module (if parameter `enable_raw` is set).
 
-* `raspicam_node/motion_vectors`:
+* `~/motion_vectors`:
   Publishes `raspicam_node/MotionVectors` from the camera module (if parameter `enable_imv` is set).
 
-* `raspicam_node/camera_info`:
+* `~/camera_info`:
   Publishes `sensor_msgs/CameraInfo` camera info for each frame.
 
 Services:
@@ -88,7 +88,7 @@ Services:
 
 Parameters:
 
-* `topic_prefix` (string): The prefix to apply to every topic.
+* `topics_prefix` (string): The prefix to apply to every topic name.
 By default the prefix is "~", which means the topics are private and start with the node name.
 If you change the prefix to "abc", every topic will start with "abc" instead of "raspicam_node" (or the node name you defined).
 This parameter can be seen as redundant with namespaces but it is there for backward compatibility.

@@ -170,7 +170,7 @@ int skip_frames = 0;
  * Assign a default set of parameters to the state passed in
  *
  * @param state state structure to assign defaults to
- * @param nh Nodehandle to get params from
+ * @param nh NodeHandle to get params from
  */
 static void configure_parameters(RASPIVID_STATE& state, ros::NodeHandle& nh) {
   nh.param<int>("width", state.width, 640);
@@ -1305,25 +1305,25 @@ void reconfigure_callback(raspicam_node::CameraConfig& config, uint32_t level, R
 
 int main(int argc, char** argv) {
   ros::init(argc, argv, "raspicam_node");
-  ros::NodeHandle nh_private("~");
+  ros::NodeHandle nh_params("~");
 
   std::string topic_prefix;
-  nh_private.param("topic_prefix", topic_prefix, std::string("~"));
-  ros::NodeHandle nh_prefix(topic_prefix);
+  nh_params.param("topics_prefix", topic_prefix, std::string("~"));
+  ros::NodeHandle nh_topics(topic_prefix);
 
-  nh_private.param("skip_frames", skip_frames, 0);
+  nh_params.param("skip_frames", skip_frames, 0);
 
   std::string camera_info_url;
   std::string camera_name;
 
-  nh_private.param("camera_info_url", camera_info_url, std::string("package://raspicam_node/camera_info/camera.yaml"));
-  nh_private.param("camera_name", camera_name, std::string("camera"));
+  nh_params.param("camera_info_url", camera_info_url, std::string("package://raspicam_node/camera_info/camera.yaml"));
+  nh_params.param("camera_name", camera_name, std::string("camera"));
 
-  camera_info_manager::CameraInfoManager c_info_man(nh_private, camera_name, camera_info_url);
+  camera_info_manager::CameraInfoManager c_info_man(nh_params, camera_name, camera_info_url);
 
   RASPIVID_STATE state_srv;
 
-  configure_parameters(state_srv, nh_private);
+  configure_parameters(state_srv, nh_params);
   init_cam(state_srv);
 
   if (!c_info_man.loadCameraInfo(camera_info_url)) {
@@ -1341,13 +1341,13 @@ int main(int argc, char** argv) {
   }
 
   if (state_srv.enable_raw_pub){
-    image.pub = nh_prefix.advertise<sensor_msgs::Image>("image", 1);
+    image.pub = nh_topics.advertise<sensor_msgs::Image>("image", 1);
   }
   if (state_srv.enable_imv_pub) {
-    motion_vectors.pub = nh_prefix.advertise<raspicam_node::MotionVectors>("motion_vectors", 1);
+    motion_vectors.pub = nh_topics.advertise<raspicam_node::MotionVectors>("motion_vectors", 1);
   }
-  compressed_image.pub = nh_prefix.advertise<sensor_msgs::CompressedImage>("image/compressed", 1);
-  camera_info_pub = nh_prefix.advertise<sensor_msgs::CameraInfo>("camera_info", 1);
+  compressed_image.pub = nh_topics.advertise<sensor_msgs::CompressedImage>("image/compressed", 1);
+  camera_info_pub = nh_topics.advertise<sensor_msgs::CameraInfo>("camera_info", 1);
 
   dynamic_reconfigure::Server<raspicam_node::CameraConfig> server;
   dynamic_reconfigure::Server<raspicam_node::CameraConfig>::CallbackType f;
