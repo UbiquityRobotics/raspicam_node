@@ -88,10 +88,9 @@ Services:
 
 Parameters:
 
-* `topics_prefix` (string): The prefix to apply to every topic name.
-By default the prefix is "~", which means the topics are private and start with the node name.
-If you change the prefix to "abc", every topic will start with "abc" instead of "raspicam_node" (or the node name you defined).
-This parameter can be seen as redundant with namespaces but it is there for backward compatibility.
+* `private_topics` (bool): By default the topics are private, meaning the node name will be added in front of every topic name.
+If you don't want the topics to be private, you can set this parameter to "true".
+This parameter is mainly present in order to keep backward compatibility.
 
 * `camera_frame_id` (tf frame): The frame identifier to associate the camera.
 

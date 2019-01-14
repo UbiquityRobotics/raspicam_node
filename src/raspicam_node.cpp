@@ -1307,9 +1307,9 @@ int main(int argc, char** argv) {
   ros::init(argc, argv, "raspicam_node");
   ros::NodeHandle nh_params("~");
 
-  std::string topic_prefix;
-  nh_params.param("topics_prefix", topic_prefix, std::string("~"));
-  ros::NodeHandle nh_topics(topic_prefix);
+  bool private_topics;
+  nh_params.param<bool>("private_topics", private_topics, true);
+  ros::NodeHandle nh_topics(private_topics ? std::string("~") : std::string(""));
 
   nh_params.param("skip_frames", skip_frames, 0);
 
