@@ -1309,7 +1309,7 @@ int main(int argc, char** argv) {
 
   bool private_topics;
   nh_params.param<bool>("private_topics", private_topics, true);
-  ros::NodeHandle nh_topics(private_topics ? std::string("~") : std::string(""));
+  ros::NodeHandle nh_topics(private_topics ? std::string("~") : std::string());
 
   nh_params.param("skip_frames", skip_frames, 0);
 
