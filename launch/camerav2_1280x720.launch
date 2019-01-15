@@ -6,8 +6,8 @@
   <arg name="camera_name" default="camerav2_1280x720"/>
 
   <node type="raspicam_node" pkg="raspicam_node" name="raspicam_node" output="screen">
-  	<param name="camera_frame_id" value="$(arg camera_frame_id)"/>
-  	<param name="enable_raw" value="$(arg enable_raw)"/>
+    <param name="camera_frame_id" value="$(arg camera_frame_id)"/>
+    <param name="enable_raw" value="$(arg enable_raw)"/>
     <param name="enable_imv" value="$(arg enable_imv)"/>
     <param name="camera_id" value="$(arg camera_id)"/>
 
@@ -15,6 +15,7 @@
     <param name="camera_name" value="$(arg camera_name)"/>
     <param name="width" value="1280"/>
     <param name="height" value="720"/>
+
     <!-- We are running at 90fps to reduce motion blur -->
     <param name="framerate" value="90"/>
   </node>
