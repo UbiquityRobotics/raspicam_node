@@ -84,33 +84,33 @@ Topics:
 
 Services:
 
-* `/set_camera_info`: Used to update calibration info for the camera.
+* `~/set_camera_info`: Used to update calibration info for the camera.
 
 Parameters:
 
-* `private_topics` (bool): By default the topics are private, meaning the node name will be added in front of every topic name.
+* `~private_topics` (bool): By default the topics are private, meaning the node name will be added in front of every topic name.
 If you don't want the topics to be private, you can set this parameter to "true".
 This parameter is mainly present in order to keep backward compatibility.
 
-* `camera_frame_id` (tf frame): The frame identifier to associate the camera.
+* `~camera_frame_id` (tf frame): The frame identifier to associate the camera.
 
-* `camera_info_url`: The URL of the camera calibration `.yaml` file.
+* `~camera_info_url`: The URL of the camera calibration `.yaml` file.
 
-* `camera_name` (string): The name of the camera, should match with name in camera_info file.
+* `~camera_name` (string): The name of the camera, should match with name in camera_info file.
 
-* `framerate` (fps): Framerate to capture at. Maximum 90fps
+* `~framerate` (fps): Framerate to capture at. Maximum 90fps
 
-* `height` (pixels): Height to capture images at.
+* `~height` (pixels): Height to capture images at.
 
-* `width` (pixels): Width to capture images at.
+* `~width` (pixels): Width to capture images at.
 
-* `quality` (0-100): Quality of the captured images.
+* `~quality` (0-100): Quality of the captured images.
 
-* `enable_raw` (bool): Publish a raw image (takes more CPU and memory)
+* `~enable_raw` (bool): Publish a raw image (takes more CPU and memory)
 
-* `enable_imv` (bool): Publish inline motion vectors computed by the GPU
+* `~enable_imv` (bool): Publish inline motion vectors computed by the GPU
 
-* `camera_id` (int): The camera id (only supported on Compute Module)
+* `~camera_id` (int): The camera id (only supported on Compute Module)
 
 ## Calibration
 
