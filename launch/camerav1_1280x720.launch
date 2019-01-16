@@ -6,6 +6,8 @@
   <arg name="camera_name" default="camerav1_1280x720"/>
 
   <node type="raspicam_node" pkg="raspicam_node" name="raspicam_node" output="screen">
+    <param name="private_topics" value="true"/>
+
     <param name="camera_frame_id" value="$(arg camera_frame_id)"/>
     <param name="enable_raw" value="$(arg enable_raw)"/>
     <param name="enable_imv" value="$(arg enable_imv)"/>

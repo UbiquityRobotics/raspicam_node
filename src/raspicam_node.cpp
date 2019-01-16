@@ -1309,6 +1309,8 @@ int main(int argc, char** argv) {
 
   bool private_topics;
   nh_params.param<bool>("private_topics", private_topics, true);
+
+  // The node handle used for topics will be private or public depending on the value of the ~private_topics parameter
   ros::NodeHandle nh_topics(private_topics ? std::string("~") : std::string());
 
   nh_params.param("skip_frames", skip_frames, 0);
