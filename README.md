@@ -1,6 +1,6 @@
 # raspicam_node
 
-ROS node for the Raspberry Pi Camera Module. Works with both the V1.x and V2.x versions of the module. We recommend using the v2.x cameras as they have better auto gain, and the general image quality is better. 
+ROS node for the Raspberry Pi Camera Module. Works with both the V1.x and V2.x versions of the module. We recommend using the v2.x cameras as they have better auto gain, and the general image quality is better.
 
 ## Installation
 
@@ -26,7 +26,7 @@ yaml https://raw.githubusercontent.com/UbiquityRobotics/rosdep/master/raspberry-
 
 Then run `rosdep update`.
 
-Install the ros dependencies, 
+Install the ros dependencies,
 
 ```
 cd ~/catkin_ws
@@ -50,7 +50,7 @@ The `raspicam_node` supports dynamically reconfiguring the camera parameters.
 Run the dynamic reconfigure node on a connected computer:
 
 ```
-rosrun rqt_reconfigure rqt_reconfigure 
+rosrun rqt_reconfigure rqt_reconfigure
 ```
 
 It should bring up a user interface like the one below.  Paramaters can be dynamically adjusted via this interface.
@@ -70,50 +70,54 @@ make sure that the camera cable is properly seated on both ends, and that the ca
 
 Topics:
 
-* `/raspicam_node/image/compressed`:
+* `~/image/compressed`:
   Publishes `sensor_msgs/CompressedImage` with jpeg from the camera module.
 
-* `/raspicam_node/image`:
+* `~/image`:
   Publishes `sensor_msgs/Image` from the camera module (if parameter `enable_raw` is set).
 
-* `/raspicam_node/motion_vectors`:
+* `~/motion_vectors`:
   Publishes `raspicam_node/MotionVectors` from the camera module (if parameter `enable_imv` is set).
 
-* `/raspicam_node/camera_info`:
+* `~/camera_info`:
   Publishes `sensor_msgs/CameraInfo` camera info for each frame.
 
 Services:
 
-* `/set_camera_info`: Used to update calibration info for the camera.
+* `~/set_camera_info`: Used to update calibration info for the camera.
 
 Parameters:
 
-* `camera_frame_id` (tf frame): The frame identifier to associate the camera.
+* `~private_topics` (bool): By default the topics are private, meaning the node name will be added in front of every topic name.
+If you don't want the topics to be private, you can set this parameter to "true".
+This parameter is mainly present in order to keep backward compatibility.
 
-* `camera_info_url`: The URL of the camera calibration `.yaml` file.
+* `~camera_frame_id` (tf frame): The frame identifier to associate the camera.
 
-* `camera_name` (string): The name of the camera, should match with name in camera_info file.
+* `~camera_info_url`: The URL of the camera calibration `.yaml` file.
 
-* `framerate` (fps): Framerate to capture at. Maximum 90fps
+* `~camera_name` (string): The name of the camera, should match with name in camera_info file.
 
-* `height` (pixels): Height to capture images at.
+* `~framerate` (fps): Framerate to capture at. Maximum 90fps
 
-* `width` (pixels): Width to capture images at.
+* `~height` (pixels): Height to capture images at.
 
-* `quality` (0-100): Quality of the captured images.
+* `~width` (pixels): Width to capture images at.
 
-* `enable_raw` (bool): Publish a raw image (takes more CPU and memory)
+* `~quality` (0-100): Quality of the captured images.
 
-* `enable_imv` (bool): Publish inline motion vectors computed by the GPU
+* `~enable_raw` (bool): Publish a raw image (takes more CPU and memory)
 
-* `camera_id` (int): The camera id (only supported on Compute Module)
+* `~enable_imv` (bool): Publish inline motion vectors computed by the GPU
+
+* `~camera_id` (int): The camera id (only supported on Compute Module)
 
 ## Calibration
 
 The raspicam_node package contains a calibration file for the raspberry
 PI camera versions 1 and 2.
 
-A tutorial 
+A tutorial
   [Monocular Camera Calibration tutorial](http://wiki.ros.org/camera_calibration/Tutorials/MonocularCalibration)
 shows how to calibrate a single camera.
 
