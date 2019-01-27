@@ -105,8 +105,8 @@ struct RASPIVID_STATE {
   int height;     /// requested height of image
   int framerate;  /// Requested frame rate (fps)
   int quality;
-  bool enable_raw_pub; // Enable Raw publishing
-  bool enable_imv_pub; // Enable publishing of inline motion vectors
+  bool enable_raw_pub;  // Enable Raw publishing
+  bool enable_imv_pub;  // Enable publishing of inline motion vectors
 
   int camera_id = 0;
 
@@ -117,13 +117,13 @@ struct RASPIVID_STATE {
   mmal::component_ptr image_encoder_component;
   mmal::component_ptr video_encoder_component;
 
-  mmal::connection_ptr splitter_connection;      /// Pointer to camera => splitter
-  mmal::connection_ptr image_encoder_connection; /// Pointer to splitter => encoder
-  mmal::connection_ptr video_encoder_connection; /// Pointer to camera => encoder
+  mmal::connection_ptr splitter_connection;       /// Pointer to camera => splitter
+  mmal::connection_ptr image_encoder_connection;  /// Pointer to splitter => encoder
+  mmal::connection_ptr video_encoder_connection;  /// Pointer to camera => encoder
 
-  mmal::pool_ptr splitter_pool;      // Pointer buffer pool used by splitter (raw) output
-  mmal::pool_ptr image_encoder_pool; // Pointer buffer pool used by encoder (jpg) output
-  mmal::pool_ptr video_encoder_pool; // Pointer buffer pool used by encoder (h264) output
+  mmal::pool_ptr splitter_pool;       // Pointer buffer pool used by splitter (raw) output
+  mmal::pool_ptr image_encoder_pool;  // Pointer buffer pool used by encoder (jpg) output
+  mmal::pool_ptr video_encoder_pool;  // Pointer buffer pool used by encoder (h264) output
 };
 
 /** Struct used to pass information in encoder port userdata to callback
@@ -326,7 +326,7 @@ static void video_encoder_buffer_callback(MMAL_PORT_T* port, MMAL_BUFFER_HEADER_
       int8_t x;
       int8_t y;
       uint16_t sad;
-    } *imv = reinterpret_cast<struct imv *>(buffer->data);
+    }* imv = reinterpret_cast<struct imv*>(buffer->data);
 
     size_t num_elements = buffer->length / sizeof(struct imv);
     motion_vectors.msg.x.resize(num_elements);
@@ -849,11 +849,11 @@ error:
  */
 static MMAL_STATUS_T create_splitter_component(RASPIVID_STATE& state) {
   MMAL_COMPONENT_T* splitter = 0;
-  MMAL_PORT_T *splitter_input = nullptr;
+  MMAL_PORT_T* splitter_input = nullptr;
   MMAL_PORT_T *splitter_output_enc = nullptr, *splitter_output_raw = nullptr;
   MMAL_STATUS_T status;
   MMAL_POOL_T* pool;
-  MMAL_ES_FORMAT_T *format;
+  MMAL_ES_FORMAT_T* format;
 
   status = mmal_component_create(MMAL_COMPONENT_DEFAULT_VIDEO_SPLITTER, &splitter);
 
@@ -904,10 +904,9 @@ static MMAL_STATUS_T create_splitter_component(RASPIVID_STATE& state) {
   status = mmal_port_format_commit(splitter_output_enc);
 
   if (status != MMAL_SUCCESS) {
-     vcos_log_error("Unable to set format on splitter output port for image encoder");
-     goto error;
+    vcos_log_error("Unable to set format on splitter output port for image encoder");
+    goto error;
   }
-
 
   /*** Output for raw ***/
 
@@ -919,27 +918,26 @@ static MMAL_STATUS_T create_splitter_component(RASPIVID_STATE& state) {
   // Use BGR24 (bgr8 in ROS)
   format = splitter_output_raw->format;
   format->encoding = MMAL_ENCODING_BGR24;
-  format->encoding_variant = 0;  /* Irrelevant when not in opaque mode */
+  format->encoding_variant = 0; /* Irrelevant when not in opaque mode */
 
   status = mmal_port_format_commit(splitter_output_raw);
 
   if (status != MMAL_SUCCESS) {
-     vcos_log_error("Unable to set format on splitter output port for raw");
-     goto error;
+    vcos_log_error("Unable to set format on splitter output port for raw");
+    goto error;
   }
 
   /*** Setup all other output ports ***/
 
   // start from 2
   for (unsigned int i = 2; i < splitter->output_num; i++) {
-
     mmal_format_copy(splitter->output[i]->format, splitter_input->format);
 
     status = mmal_port_format_commit(splitter->output[i]);
 
     if (status != MMAL_SUCCESS) {
-       vcos_log_error("Unable to set format on splitter output port %d", i);
-       goto error;
+      vcos_log_error("Unable to set format on splitter output port %d", i);
+      goto error;
     }
   }
 
@@ -1066,12 +1064,6 @@ int init_cam(RASPIVID_STATE& state) {
       return 1;
     }
 
-    status = connect_ports(camera_preview_port, video_encoder_input_port, state.video_encoder_connection);
-    if (status != MMAL_SUCCESS) {
-      ROS_ERROR("%s: Failed to connect camera preview port to encoder input", __func__);
-      return 1;
-    }
-
     status = connect_ports(splitter_output_enc, image_encoder_input_port, state.image_encoder_connection);
     if (status != MMAL_SUCCESS) {
       ROS_ERROR("%s: Failed to connect camera splitter port to image encoder input", __func__);
@@ -1097,6 +1089,12 @@ int init_cam(RASPIVID_STATE& state) {
     }
 
     if (state.enable_imv_pub) {
+      status = connect_ports(camera_preview_port, video_encoder_input_port, state.video_encoder_connection);
+      if (status != MMAL_SUCCESS) {
+        ROS_ERROR("%s: Failed to connect camera preview port to encoder input", __func__);
+        return 1;
+      }
+
       video_encoder_output_port = state.video_encoder_component->output[0];
       PORT_USERDATA* h264_callback_data_enc = new PORT_USERDATA(state);
       // Set up our userdata - this is passed though to the callback where we
