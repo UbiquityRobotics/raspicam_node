@@ -80,7 +80,7 @@ int main(int argc, char** argv) {
 static constexpr int IMG_BUFFER_SIZE = 10 * 1024 * 1024;  // 10 MB
 
 // Video format information
-static constexpr int VIDEO_FRAME_RATE_DEN = 3;
+static constexpr int VIDEO_FRAME_RATE_DEN = 1;
 
 // Video render needs at least 2 buffers.
 static constexpr int VIDEO_OUTPUT_BUFFERS_NUM = 3;
