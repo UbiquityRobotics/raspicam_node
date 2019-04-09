@@ -69,6 +69,8 @@ int main(int argc, char** argv) {
 #include "sensor_msgs/SetCameraInfo.h"
 #include "std_srvs/Empty.h"
 #include "raspicam_node/MotionVectors.h"
+#include <diagnostic_updater/diagnostic_updater.h>
+#include <diagnostic_updater/publisher.h>
 
 #include "RaspiCamControl.h"
 
@@ -124,6 +126,11 @@ struct RASPIVID_STATE {
   mmal::pool_ptr splitter_pool;       // Pointer buffer pool used by splitter (raw) output
   mmal::pool_ptr image_encoder_pool;  // Pointer buffer pool used by encoder (jpg) output
   mmal::pool_ptr video_encoder_pool;  // Pointer buffer pool used by encoder (h264) output
+
+  // The Updater class advertises to /diagnostics, and has a
+  // ~diagnostic_period parameter that says how often the diagnostics
+  // should be published.
+  static diagnostic_updater::Updater updater;
 };
 
 /** Struct used to pass information in encoder port userdata to callback
@@ -140,26 +147,20 @@ typedef struct MMAL_PORT_USERDATA_T {
   int frames_skipped = 0;
 } PORT_USERDATA;
 
-struct ImagePublisher {
-  ros::Publisher pub;
-  sensor_msgs::Image msg;
+using diagnostic_updater::DiagnosedPublisher;
+using diagnostic_updater::FrequencyStatusParam;
+using diagnostic_updater::TimeStampStatusParam;
+
+// Helper template
+template<typename T>
+struct DiagnosedMsgPublisher {
+  std::unique_ptr<DiagnosedPublisher<T>> pub;
+  T msg;
 };
 
-static ImagePublisher image;
-
-struct CompressedImagePublisher {
-  ros::Publisher pub;
-  sensor_msgs::CompressedImage msg;
-};
-
-static CompressedImagePublisher compressed_image;
-
-struct MotionVectorsPublisher {
-  ros::Publisher pub;
-  raspicam_node::MotionVectors msg;
-};
-
-static MotionVectorsPublisher motion_vectors;
+static DiagnosedMsgPublisher<sensor_msgs::Image> image;
+static DiagnosedMsgPublisher<sensor_msgs::CompressedImage> compressed_image;
+static DiagnosedMsgPublisher<raspicam_node::MotionVectors> motion_vectors;
 
 ros::Publisher camera_info_pub;
 sensor_msgs::CameraInfo c_info;
@@ -260,13 +261,16 @@ static void image_encoder_buffer_callback(MMAL_PORT_T* port, MMAL_BUFFER_HEADER_
           auto end = &(pData->buffer[pData->frame & 1].get()[pData->id]);
           compressed_image.msg.data.resize(pData->id);
           std::copy(start, end, compressed_image.msg.data.begin());
-          compressed_image.pub.publish(compressed_image.msg);
+          compressed_image.pub->publish(compressed_image.msg);
 
           c_info.header.seq = pData->frame;
           c_info.header.stamp = compressed_image.msg.header.stamp;
           c_info.header.frame_id = compressed_image.msg.header.frame_id;
           camera_info_pub.publish(c_info);
           pData->frame++;
+
+	  // Update diagnosics if needed
+	  pData->pState.updater.update();
         }
       }
       pData->id = 0;
@@ -342,7 +346,7 @@ static void video_encoder_buffer_callback(MMAL_PORT_T* port, MMAL_BUFFER_HEADER_
 
     mmal_buffer_header_mem_unlock(buffer);
 
-    motion_vectors.pub.publish(motion_vectors.msg);
+    motion_vectors.pub->publish(motion_vectors.msg);
     pData->frame++;
   }
 
@@ -415,7 +419,7 @@ static void splitter_buffer_callback(MMAL_PORT_T* port, MMAL_BUFFER_HEADER_T* bu
           auto end = &(pData->buffer[pData->frame & 1].get()[pData->id]);
           image.msg.data.resize(pData->id);
           std::copy(start, end, image.msg.data.begin());
-          image.pub.publish(image.msg);
+          image.pub->publish(image.msg);
         }
       }
       pData->frame++;
@@ -1340,13 +1344,28 @@ int main(int argc, char** argv) {
     ROS_INFO("Camera successfully calibrated from device specifc file");
   }
 
+  
+
+  // diagnostics parameters
+  state_srv->updater.setHardwareID("raspicam");
+  double desired_freq = state_srv.framerate;
+  double min_freq = desired_freq * 0.95;
+  double max_freq = desired_freq * 1.05;
+
   if (state_srv.enable_raw_pub){
-    image.pub = nh_topics.advertise<sensor_msgs::Image>("image", 1);
+    auto image_pub = nh_topics.advertise<sensor_msgs::Image>("image", 1);
+    image.pub.reset(new DiagnosedPublisher<sensor_msgs::Image>(
+        image_pub, state_srv->updater, FrequencyStatusParam(&min_freq, &max_freq, 0.1, 10), TimeStampStatusParam(0, 0.2)));
   }
   if (state_srv.enable_imv_pub) {
-    motion_vectors.pub = nh_topics.advertise<raspicam_node::MotionVectors>("motion_vectors", 1);
+    auto imv_pub = nh_topics.advertise<raspicam_node::MotionVectors>("motion_vectors", 1);
+    motion_vectors.pub.reset(new DiagnosedPublisher<raspicam_node::MotionVectors>(
+        imv_pub, state_srv->updater, FrequencyStatusParam(&min_freq, &max_freq, 0.1, 10), TimeStampStatusParam(0, 0.2)));
   }
-  compressed_image.pub = nh_topics.advertise<sensor_msgs::CompressedImage>("image/compressed", 1);
+  auto cimage_pub = nh_topics.advertise<sensor_msgs::CompressedImage>("image/ompressed", 1);
+  compressed_image.pub.reset(new DiagnosedPublisher<sensor_msgs::CompressedImage>(
+      cimage_pub, state_srv->updater, FrequencyStatusParam(&min_freq, &max_freq, 0.1, 10), TimeStampStatusParam(0, 0.2)));
+  
   camera_info_pub = nh_topics.advertise<sensor_msgs::CameraInfo>("camera_info", 1);
 
   dynamic_reconfigure::Server<raspicam_node::CameraConfig> server;

@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   camera_info_manager
   dynamic_reconfigure
+  diagnostic_updater
   message_generation
 )
 
