@@ -409,7 +409,7 @@ static void splitter_buffer_callback(MMAL_PORT_T* port, MMAL_BUFFER_HEADER_T* bu
           pData->frames_skipped = 0;
           image.msg.header.seq = pData->frame;
           image.msg.header.frame_id = camera_frame_id;
-          image.msg.header.stamp = ros::Time::now();
+          image.msg.header.stamp = c_info.header.stamp;
           image.msg.encoding = "bgr8";
           image.msg.is_bigendian = false;
           image.msg.height = pData->pstate.height;
