@@ -130,15 +130,15 @@ struct RASPIVID_STATE {
   // The Updater class advertises to /diagnostics, and has a
   // ~diagnostic_period parameter that says how often the diagnostics
   // should be published.
-  static diagnostic_updater::Updater updater;
+  diagnostic_updater::Updater updater;
 };
 
 /** Struct used to pass information in encoder port userdata to callback
  */
 typedef struct MMAL_PORT_USERDATA_T {
-  MMAL_PORT_USERDATA_T(const RASPIVID_STATE& state) : pstate(state){};
+  MMAL_PORT_USERDATA_T(RASPIVID_STATE& state) : pstate(state){};
   std::unique_ptr<uint8_t[]> buffer[2];  // Memory to write buffer data to.
-  const RASPIVID_STATE& pstate;          // pointer to our state for use by callback
+  RASPIVID_STATE& pstate;                // pointer to our state for use by callback
   bool abort;                            // Set to 1 in callback if an error occurs to attempt to abort
                                          // the capture
   int frame;
@@ -270,7 +270,7 @@ static void image_encoder_buffer_callback(MMAL_PORT_T* port, MMAL_BUFFER_HEADER_
           pData->frame++;
 
 	  // Update diagnosics if needed
-	  pData->pState.updater.update();
+	  pData->pstate.updater.update();
         }
       }
       pData->id = 0;
@@ -1347,7 +1347,7 @@ int main(int argc, char** argv) {
   
 
   // diagnostics parameters
-  state_srv->updater.setHardwareID("raspicam");
+  state_srv.updater.setHardwareID("raspicam");
   double desired_freq = state_srv.framerate;
   double min_freq = desired_freq * 0.95;
   double max_freq = desired_freq * 1.05;
@@ -1355,16 +1355,16 @@ int main(int argc, char** argv) {
   if (state_srv.enable_raw_pub){
     auto image_pub = nh_topics.advertise<sensor_msgs::Image>("image", 1);
     image.pub.reset(new DiagnosedPublisher<sensor_msgs::Image>(
-        image_pub, state_srv->updater, FrequencyStatusParam(&min_freq, &max_freq, 0.1, 10), TimeStampStatusParam(0, 0.2)));
+        image_pub, state_srv.updater, FrequencyStatusParam(&min_freq, &max_freq, 0.1, 10), TimeStampStatusParam(0, 0.2)));
   }
   if (state_srv.enable_imv_pub) {
     auto imv_pub = nh_topics.advertise<raspicam_node::MotionVectors>("motion_vectors", 1);
     motion_vectors.pub.reset(new DiagnosedPublisher<raspicam_node::MotionVectors>(
-        imv_pub, state_srv->updater, FrequencyStatusParam(&min_freq, &max_freq, 0.1, 10), TimeStampStatusParam(0, 0.2)));
+        imv_pub, state_srv.updater, FrequencyStatusParam(&min_freq, &max_freq, 0.1, 10), TimeStampStatusParam(0, 0.2)));
   }
-  auto cimage_pub = nh_topics.advertise<sensor_msgs::CompressedImage>("image/ompressed", 1);
+  auto cimage_pub = nh_topics.advertise<sensor_msgs::CompressedImage>("image/compressed", 1);
   compressed_image.pub.reset(new DiagnosedPublisher<sensor_msgs::CompressedImage>(
-      cimage_pub, state_srv->updater, FrequencyStatusParam(&min_freq, &max_freq, 0.1, 10), TimeStampStatusParam(0, 0.2)));
+      cimage_pub, state_srv.updater, FrequencyStatusParam(&min_freq, &max_freq, 0.1, 10), TimeStampStatusParam(0, 0.2)));
   
   camera_info_pub = nh_topics.advertise<sensor_msgs::CameraInfo>("camera_info", 1);
 
