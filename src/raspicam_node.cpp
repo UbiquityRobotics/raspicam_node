@@ -256,7 +256,7 @@ static void image_encoder_buffer_callback(MMAL_PORT_T* port, MMAL_BUFFER_HEADER_
           compressed_image.msg.header.seq = pData->frame;
           compressed_image.msg.header.frame_id = camera_frame_id;
           compressed_image.msg.header.stamp = ros::Time::now();
-          compressed_image.msg.format = "jpg";
+          compressed_image.msg.format = "jpeg";
           auto start = pData->buffer[pData->frame & 1].get();
           auto end = &(pData->buffer[pData->frame & 1].get()[pData->id]);
           compressed_image.msg.data.resize(pData->id);
