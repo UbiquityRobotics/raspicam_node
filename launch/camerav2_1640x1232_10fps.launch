@@ -1,0 +1,21 @@
+<launch>
+  <arg name="enable_raw" default="false"/>
+  <arg name="camera_id" default="0"/>
+  <arg name="camera_frame_id" default="raspicam"/>
+  <arg name="camera_name" default="camerav2_1640x1232"/>
+
+  <node type="raspicam_node" pkg="raspicam_node" name="raspicam_node" output="screen">
+    <param name="camera_frame_id" value="$(arg camera_frame_id)"/>  
+    <param name="enable_raw" value="$(arg enable_raw)"/>
+    <param name="camera_id" value="$(arg camera_id)"/> 
+
+    <param name="camera_info_url" value="package://raspicam_node/camera_info/camerav2_1640x1232.yaml"/>
+    <param name="camera_name" value="$(arg camera_name)"/>
+    <param name="width" value="1640"/>
+    <param name="height" value="1232"/>
+
+    <param name="framerate" value="10"/>
+    <param name="exposure_mode" value="antishake"/>
+    <param name="shutter_speed" value="0"/>
+  </node>
+</launch>
