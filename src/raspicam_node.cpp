@@ -374,7 +374,7 @@ static void splitter_buffer_callback(MMAL_PORT_T* port, MMAL_BUFFER_HEADER_T* bu
   PORT_USERDATA* pData = port->userdata;
   if (pData && pData->pstate.isInit) {
     size_t bytes_written = buffer->length;
-    if (buffer->length) {
+    if (buffer->length > 0) {
       if (pData->id != INT_MAX) {
         if (pData->id + buffer->length > IMG_BUFFER_SIZE) {
           ROS_ERROR("pData->id (%d) + buffer->length (%d) > "
