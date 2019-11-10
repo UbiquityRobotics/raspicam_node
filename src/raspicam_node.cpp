@@ -470,7 +470,7 @@ static MMAL_COMPONENT_T* create_camera_component(RASPIVID_STATE& state) {
     goto error;
   }
 
-  state.camera_parameters.stereo_mode.mode = stereo_mode_from_string("tb");
+  // state.camera_parameters.stereo_mode.mode = stereo_mode_from_string("tb");
   status = static_cast<MMAL_STATUS_T>(raspicamcontrol_set_stereo_mode(camera->output[0], &state.camera_parameters.stereo_mode));
 	if (status != MMAL_SUCCESS)
 	{
