@@ -202,6 +202,7 @@ static void configure_parameters(RASPIVID_STATE& state, ros::NodeHandle& nh) {
   nh.param<bool>("vFlip", temp, false);
   state.camera_parameters.vflip = temp;  // Hack for bool param => int variable
   nh.param<int>("shutter_speed", state.camera_parameters.shutter_speed, 0);
+  nh.param<int>("contrast", state.camera_parameters.contrast, 1);
 
   state.isInit = false;
 }
