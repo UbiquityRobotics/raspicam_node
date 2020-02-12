@@ -82,7 +82,7 @@ static const int awb_map_size = sizeof(awb_map) / sizeof(awb_map[0]);
 static XREF_T imagefx_map[] =
 {
    {"none",          MMAL_PARAM_IMAGEFX_NONE},
-   {"negative",      MMAL_PARAM_IMAGEFX_NEGATIVE},
+   {"negative",      MMAL_PARAM_IMAGEFX_NEGATIVE}, 
    {"solarise",      MMAL_PARAM_IMAGEFX_SOLARIZE},
    {"sketch",        MMAL_PARAM_IMAGEFX_SKETCH},
    {"denoise",       MMAL_PARAM_IMAGEFX_DENOISE},
