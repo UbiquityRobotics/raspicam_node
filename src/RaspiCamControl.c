@@ -851,22 +851,22 @@ int mmal_status_to_int(MMAL_STATUS_T status)
    {
       switch (status)
       {
-      case MMAL_ENOMEM :   vcos_log_error("Out of memory"); break;
-      case MMAL_ENOSPC :   vcos_log_error("Out of resources (other than memory)"); break;
-      case MMAL_EINVAL:    vcos_log_error("Argument is invalid"); break;
-      case MMAL_ENOSYS :   vcos_log_error("Function not implemented"); break;
-      case MMAL_ENOENT :   vcos_log_error("No such file or directory"); break;
-      case MMAL_ENXIO :    vcos_log_error("No such device or address"); break;
-      case MMAL_EIO :      vcos_log_error("I/O error"); break;
-      case MMAL_ESPIPE :   vcos_log_error("Illegal seek"); break;
-      case MMAL_ECORRUPT : vcos_log_error("Data is corrupt \attention FIXME: not POSIX"); break;
-      case MMAL_ENOTREADY :vcos_log_error("Component is not ready \attention FIXME: not POSIX"); break;
-      case MMAL_ECONFIG :  vcos_log_error("Component is not configured \attention FIXME: not POSIX"); break;
-      case MMAL_EISCONN :  vcos_log_error("Port is already connected "); break;
-      case MMAL_ENOTCONN : vcos_log_error("Port is disconnected"); break;
-      case MMAL_EAGAIN :   vcos_log_error("Resource temporarily unavailable. Try again later"); break;
-      case MMAL_EFAULT :   vcos_log_error("Bad address"); break;
-      default :            vcos_log_error("Unknown status error"); break;
+      case MMAL_ENOMEM :  fprintf(stderr, "Out of memory"); vcos_log_error("Out of memory"); break;
+      case MMAL_ENOSPC :  fprintf(stderr, "Out of resources (other than memory)"); vcos_log_error("Out of resources (other than memory)"); break;
+      case MMAL_EINVAL:   fprintf(stderr, "Argument is invalid"); vcos_log_error("Argument is invalid"); break;
+      case MMAL_ENOSYS :  fprintf(stderr, "Function not implemented"); vcos_log_error("Function not implemented"); break;
+      case MMAL_ENOENT :  fprintf(stderr, "No such file or directory"); vcos_log_error("No such file or directory"); break;
+      case MMAL_ENXIO :   fprintf(stderr, "No such device or address"); vcos_log_error("No such device or address"); break;
+      case MMAL_EIO :     fprintf(stderr, "I/O error"); vcos_log_error("I/O error"); break;
+      case MMAL_ESPIPE :  fprintf(stderr, "Illegal seek"); vcos_log_error("Illegal seek"); break;
+      case MMAL_ECORRUPT : fprintf(stderr, "Data is corrupt \attention FIXME: not POSIX"); vcos_log_error("Data is corrupt \attention FIXME: not POSIX"); break;
+      case MMAL_ENOTREADY : fprintf(stderr, "Component is not ready \attention FIXME: not POSIX"); vcos_log_error("Component is not ready \attention FIXME: not POSIX"); break;
+      case MMAL_ECONFIG :  fprintf(stderr, "Component is not ready \attention FIXME: not POSIX"); vcos_log_error("Component is not configured \attention FIXME: not POSIX"); break;
+      case MMAL_EISCONN :  fprintf(stderr, "Port is already connected "); vcos_log_error("Port is already connected "); break;
+      case MMAL_ENOTCONN : fprintf(stderr, "Port is disconnected"); vcos_log_error("Port is disconnected"); break;
+      case MMAL_EAGAIN :   fprintf(stderr, "Resource temporarily unavailable. Try again later"); vcos_log_error("Resource temporarily unavailable. Try again later"); break;
+      case MMAL_EFAULT :   fprintf(stderr, "Bad address"); vcos_log_error("Bad address"); break;
+      default :            fprintf(stderr, "Unknown status error"); vcos_log_error("Unknown status error"); break;
       }
 
       return 1;
