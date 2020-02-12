@@ -38,8 +38,19 @@ int main(int argc, char** argv) {
 
 #endif  // __x86_64__
 
-#ifdef __arm__
+// #ifdef __arm__
+#define SHUTDOWN(reason) \
+  ROS_ERROR(reason); \
+  close_cam(state); \
+  ros::shutdown(); 
 
+#define IF_FALSE_SHUTDOWN(statement, reason) \
+  if(statement == 1) \
+  { \
+    SHUTDOWN(reason) \
+    return; \
+  }
+  
 // We use some GNU extensions (basename)
 #include <memory.h>
 #include <stdio.h>
@@ -68,8 +79,9 @@ int main(int argc, char** argv) {
 #include "sensor_msgs/CompressedImage.h"
 #include "sensor_msgs/Image.h"
 #include "sensor_msgs/SetCameraInfo.h"
+#include <sensor_msgs/image_encodings.h>
 #include "std_srvs/Empty.h"
- #include "raspicam_node/MotionVectors.h"
+//  #include "raspicam_node/MotionVectors.h"
 #include <diagnostic_updater/diagnostic_updater.h>
 #include <diagnostic_updater/publisher.h>
 extern "C" {
@@ -79,6 +91,9 @@ extern "C" {
 #include <raspicam_node/CameraConfig.h>
 
 #include "mmal_cxx_helper.h"
+#include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
+#include <cv_bridge/cv_bridge.h>
 
 static constexpr int IMG_BUFFER_SIZE = 10 * 1024 * 1024;  // 10 MB
 
@@ -99,10 +114,13 @@ struct RASPIVID_STATE {
   bool isInit;
   int width;      /// Requested width of image
   int height;     /// requested height of image
+  int new_width;
+  int new_height;
   int framerate;  /// Requested frame rate (fps)
   int quality;
-
   int camera_id = 0;
+  std::string encoding;
+  std::string imagefx_mode;
 
   RASPICAM_CAMERA_PARAMETERS camera_parameters;  /// Camera setup parameters
 
@@ -152,23 +170,77 @@ sensor_msgs::CameraInfo right_info;
 std::string camera_frame_id;
 int skip_frames = 0;
 
-/**
- * Assign a default set of parameters to the state passed in
- *
- * @param state state structure to assign defaults to
- * @param nh NodeHandle to get params from
- */
+bool resize(sensor_msgs::Image& source_msg, 
+                  sensor_msgs::Image& resized_msg, cv::Size size, std::string encoding)
+{
+  // ROS_WARN("Starting resizing ...");
+  cv_bridge::CvImagePtr bridge =  cv_bridge::toCvCopy(source_msg, encoding);
+  cv::resize(bridge->image, bridge->image, size, 0, 0, cv::INTER_LINEAR);
+  // cv::imshow("resized", image);
+  // cv::waitKey(1);
+  resized_msg = *bridge->toImageMsg().get();
+  // ROS_WARN("Resizing finished...");
+  return true;
+}
+
 void print_image(const sensor_msgs::Image& msg)
 {
   std::cout << "header { stamp: { sec: " << msg.header.stamp.sec << ", nsec: " <<  msg.header.stamp.nsec 
       << ", frameid: " << msg.header.frame_id << " }, \nheight: " << msg.height << "\nwidth: " << msg.width 
       << "\nstep: " << msg.step << "\nencoding: " << msg.encoding << "\ndata_size: " << msg.data.size() << std::endl;
 }
+
+int close_cam(RASPIVID_STATE& state) {
+  if (state.isInit) {
+    state.isInit = false;
+    MMAL_COMPONENT_T* camera = state.camera_component.get();
+    MMAL_COMPONENT_T* splitter = state.splitter_component.get();
+
+    // Destroy splitter port connection
+    state.splitter_connection.reset(nullptr);
+
+
+    // Destroy splitter component
+    if (splitter) {
+      // Get rid of any port buffers first
+      state.splitter_pool.reset(nullptr);
+      // Delete callback structure
+      if (splitter->output[1]->userdata) {
+        delete splitter->output[1]->userdata;
+      }
+      state.splitter_component.reset(nullptr);
+    }
+
+    // destroy camera component
+    if (camera) {
+      state.camera_component.reset(nullptr);
+    }
+    ROS_INFO("Video capture stopped\n");
+    return 0;
+  } else
+    return 1;
+}
+
 static void configure_parameters(RASPIVID_STATE& state, ros::NodeHandle& nh) {
-  nh.param<int>("width", state.width, 1280);
-  nh.param<int>("height", state.height, 720);
-  state.height*=2;
-  nh.param<int>("quality", state.quality, 80);
+  nh.param<std::string>("imagefx_mode", state.imagefx_mode, "denoise"); 
+  nh.param<std::string>("encoding", state.encoding, "bgr8");
+  if(state.encoding == "mono8")
+     state.encoding = sensor_msgs::image_encodings::MONO8;
+  else if(state.encoding == "bgr8")
+  {
+    state.encoding = sensor_msgs::image_encodings::BGR8;
+  }
+  else
+  {
+    ROS_WARN("Unknown encoding. Set to default");
+    state.encoding = sensor_msgs::image_encodings::BGR8;
+  }
+   
+  nh.param<int>("width", state.new_width, 1280);
+  nh.param<int>("height", state.new_height, 720);
+  state.width = 1280;
+  state.height = 720*2;
+  nh.param<int>("quality", state.quality, 100);
   if (state.quality < 0 && state.quality > 100) {
     ROS_WARN("quality: %d is outside valid range 0-100, defaulting to 80", state.quality);
     state.quality = 80;
@@ -185,7 +257,7 @@ static void configure_parameters(RASPIVID_STATE& state, ros::NodeHandle& nh) {
 
   // Set up the camera_parameters to default
   raspicamcontrol_set_defaults(&state.camera_parameters);
-
+  state.camera_parameters.imageEffect = imagefx_mode_from_string(state.imagefx_mode.c_str());
   bool temp;
   nh.param<bool>("hFlip", temp, false);
   state.camera_parameters.hflip = temp;  // Hack for bool param => int variable
@@ -204,10 +276,10 @@ static void configure_parameters(RASPIVID_STATE& state, ros::NodeHandle& nh) {
  * @param port Pointer to port from which callback originated
  * @param buffer mmal buffer header pointer
  */
-void update_image(sensor_msgs::Image& msg, MMAL_BUFFER_HEADER_T* buffer, PORT_USERDATA* pData)
+void update_image(sensor_msgs::Image& msg, MMAL_BUFFER_HEADER_T* buffer, PORT_USERDATA* pData, ros::Time ts)
 {
   msg.header.frame_id = camera_frame_id;
-  msg.header.stamp = ros::Time::now(); //(double(buffer->dts)/1e6);
+  msg.header.stamp = ts; //(double(buffer->dts)/1e6);
   msg.encoding = "bgr8";
 // #ifdef _DEBUG
 //   DBG_MSG("//DEBUG// - buffer->dts:")
@@ -221,6 +293,7 @@ void update_image(sensor_msgs::Image& msg, MMAL_BUFFER_HEADER_T* buffer, PORT_US
 }
 static void splitter_buffer_callback(MMAL_PORT_T* port, MMAL_BUFFER_HEADER_T* buffer) {
   // We pass our file handle and other stuff in via the userdata field.
+  auto ts = ros::Time::now();
   PORT_USERDATA* pData = port->userdata;
   if (pData && pData->pstate.isInit) {
     size_t bytes_written = buffer->length;
@@ -257,8 +330,9 @@ static void splitter_buffer_callback(MMAL_PORT_T* port, MMAL_BUFFER_HEADER_T* bu
           pData->frames_skipped++;
         } else {
           pData->frames_skipped = 0;
-          update_image(left_image.msg, buffer, pData);
-          update_image(right_image.msg, buffer, pData);
+          
+          update_image(left_image.msg, buffer, pData, ts);
+          update_image(right_image.msg, buffer, pData, ts);
           auto start = pData->buffer[pData->frame & 1].get();
           auto end = &(pData->buffer[pData->frame & 1].get()[pData->id/2]);
           auto start1 = &(pData->buffer[pData->frame & 1].get()[pData->id/2]);
@@ -282,8 +356,14 @@ static void splitter_buffer_callback(MMAL_PORT_T* port, MMAL_BUFFER_HEADER_T* bu
             print_image(left_image.msg);
             print_image(right_image.msg);
           #endif  // _DEBUG
-          
+            // ROS_WARN("Publishing images starting...");
+            sensor_msgs::Image image_msg;
+            resize(left_image.msg, image_msg, cv::Size(pData->pstate.new_width, pData->pstate.new_height), pData->pstate.encoding);
+            // ROS_WARN("Publishing left image starting...");
+            left_image.msg = image_msg;
             left_image.pub->publish(left_image.msg);
+            resize(right_image.msg, image_msg, cv::Size(pData->pstate.new_width, pData->pstate.new_height), pData->pstate.encoding);
+            right_image.msg = image_msg;
             right_image.pub->publish(right_image.msg);
 
           #ifdef _DEBUG
@@ -505,7 +585,7 @@ static MMAL_COMPONENT_T* create_camera_component(RASPIVID_STATE& state) {
 
   state.camera_component.reset(camera);
 
-  ROS_DEBUG("Camera component done\n");
+  ROS_INFO("Camera component done\n");
 
   return camera;
 
@@ -751,8 +831,8 @@ int start_capture(RASPIVID_STATE& state) {
 
   MMAL_PORT_T* camera_video_port = state.camera_component->output[mmal::camera_port::video];
   MMAL_PORT_T* splitter_output_raw = state.splitter_component->output[1];
-  ROS_INFO("Starting video capture (%d, %d, %d, %d)\n", state.width, state.height/2, state.quality, state.framerate);
-
+  // ROS_INFO("Starting video capture (%d, %d, %d, %d)\n", state.width, state.height/2, state.quality, state.framerate); // FIXME:
+  ROS_INFO("Starting video capture (width: %d, height: %d, quality: %d, framerate: %d)\n", state.new_width, state.new_height, state.quality, state.framerate);
   if (mmal_port_parameter_set_boolean(camera_video_port, MMAL_PARAMETER_CAPTURE, 1) != MMAL_SUCCESS) {
     return 1;
   }
@@ -775,39 +855,8 @@ int start_capture(RASPIVID_STATE& state) {
   return 0;
 }
 
-int close_cam(RASPIVID_STATE& state) {
-  if (state.isInit) {
-    state.isInit = false;
-    MMAL_COMPONENT_T* camera = state.camera_component.get();
-    MMAL_COMPONENT_T* splitter = state.splitter_component.get();
-
-    // Destroy splitter port connection
-    state.splitter_connection.reset(nullptr);
-
-
-    // Destroy splitter component
-    if (splitter) {
-      // Get rid of any port buffers first
-      state.splitter_pool.reset(nullptr);
-      // Delete callback structure
-      if (splitter->output[1]->userdata) {
-        delete splitter->output[1]->userdata;
-      }
-      state.splitter_component.reset(nullptr);
-    }
-
-    // destroy camera component
-    if (camera) {
-      state.camera_component.reset(nullptr);
-    }
-    ROS_INFO("Video capture stopped\n");
-    return 0;
-  } else
-    return 1;
-}
-
 void reconfigure_callback(raspicam_node::CameraConfig& config, uint32_t level, RASPIVID_STATE& state) {
-  ROS_DEBUG("figure Request: contrast %d, sharpness %d, brightness %d, "
+  ROS_INFO("figure Request: contrast %d, sharpness %d, brightness %d, "
             "saturation %d, ISO %d, exposureCompensation %d,"
             " videoStabilisation %d, vFlip %d, hFlip %d,"
             " zoom %.2f, exposure_mode %s, awb_mode %s, shutter_speed %d",
@@ -828,24 +877,23 @@ void reconfigure_callback(raspicam_node::CameraConfig& config, uint32_t level, R
     PARAM_FLOAT_RECT_T roi;
     roi.x = roi.y = offset;
     roi.w = roi.h = size;
-    raspicamcontrol_set_ROI(state.camera_component.get(), roi);
+    IF_FALSE_SHUTDOWN(raspicamcontrol_set_ROI(state.camera_component.get(), roi), "Failed to set ROI")
   }
 
-  raspicamcontrol_set_exposure_mode(state.camera_component.get(), exposure_mode_from_string(config.exposure_mode.c_str()));
+  IF_FALSE_SHUTDOWN(raspicamcontrol_set_exposure_mode(state.camera_component.get(), exposure_mode_from_string(config.exposure_mode.c_str())), "Failed to set exposure mode")
+  IF_FALSE_SHUTDOWN(raspicamcontrol_set_awb_mode(state.camera_component.get(), awb_mode_from_string(config.awb_mode.c_str())), "Failed to set AWB mode")
+  IF_FALSE_SHUTDOWN(raspicamcontrol_set_contrast(state.camera_component.get() , config.contrast), "Failed to set contrast")
+  IF_FALSE_SHUTDOWN(raspicamcontrol_set_sharpness(state.camera_component.get(), config.sharpness), "Failed to set sharpness")
+  IF_FALSE_SHUTDOWN(raspicamcontrol_set_brightness(state.camera_component.get(), config.brightness), "Failed to set brightness")
+  IF_FALSE_SHUTDOWN(raspicamcontrol_set_saturation(state.camera_component.get(), config.saturation), "Failed to set saturation")
+  IF_FALSE_SHUTDOWN(raspicamcontrol_set_ISO(state.camera_component.get(), config.ISO) , "Failed to set ISO")
+  IF_FALSE_SHUTDOWN(raspicamcontrol_set_exposure_compensation(state.camera_component.get(), config.exposure_compensation) , "Failed to set exposure compensation")
+  IF_FALSE_SHUTDOWN(raspicamcontrol_set_video_stabilisation(state.camera_component.get(), config.video_stabilisation), "Failed to set video stabilisation")
+  IF_FALSE_SHUTDOWN(raspicamcontrol_set_flips(state.camera_component.get(), config.hFlip, config.vFlip), "Failed to set  flips")
+  IF_FALSE_SHUTDOWN(raspicamcontrol_set_shutter_speed(state.camera_component.get(), config.shutter_speed), "Failed to set shutter speed")
 
-  raspicamcontrol_set_awb_mode(state.camera_component.get(), awb_mode_from_string(config.awb_mode.c_str()));
 
-  raspicamcontrol_set_contrast(state.camera_component.get(), config.contrast);
-  raspicamcontrol_set_sharpness(state.camera_component.get(), config.sharpness);
-  raspicamcontrol_set_brightness(state.camera_component.get(), config.brightness);
-  raspicamcontrol_set_saturation(state.camera_component.get(), config.saturation);
-  raspicamcontrol_set_ISO(state.camera_component.get(), config.ISO);
-  raspicamcontrol_set_exposure_compensation(state.camera_component.get(), config.exposure_compensation);
-  raspicamcontrol_set_video_stabilisation(state.camera_component.get(), config.video_stabilisation);
-  raspicamcontrol_set_flips(state.camera_component.get(), config.hFlip, config.vFlip);
-  raspicamcontrol_set_shutter_speed(state.camera_component.get(), config.shutter_speed);
-
-  ROS_DEBUG("Reconfigure done");
+  ROS_INFO("Reconfigure done");
 }
 
 int main(int argc, char** argv) {
@@ -948,4 +996,4 @@ int main(int argc, char** argv) {
   ros::shutdown();
 }
 
-#endif  // __arm__
+// #endif  // __arm__

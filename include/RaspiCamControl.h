@@ -166,6 +166,7 @@ typedef enum {
 MMAL_PARAM_EXPOSUREMODE_T exposure_mode_from_string(const char *str);
 MMAL_PARAM_AWBMODE_T awb_mode_from_string(const char *str);
 MMAL_STEREOSCOPIC_MODE_T stereo_mode_from_string(const char *str);
+MMAL_PARAM_IMAGEFX_T imagefx_mode_from_string(const char *str);
 void raspicamcontrol_check_configuration(int min_gpu_mem);
 
 int raspicamcontrol_parse_cmdline(RASPICAM_CAMERA_PARAMETERS *params, const char *arg1, const char *arg2);
