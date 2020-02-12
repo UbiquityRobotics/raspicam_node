@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD 14) # use C++14
 # Enable compile optimizations
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -fsee -fomit-frame-pointer -fno-signed-zeros -fno-math-errno -funroll-loops")
 set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=armv8-a+crc -mtune=cortex-a53 -mfpu=crypto-neon-fp-armv8 -mfloat-abi=hard -ftree-vectorize -funsafe-math-optimizations -O3 -pipe")
 
 # add_definitions(-D_DEBUG)
 ## Find catkin macros and libraries
@@ -20,8 +21,9 @@ find_package(catkin REQUIRED COMPONENTS
   dynamic_reconfigure
   diagnostic_updater
   message_generation
+  cv_bridge
 )
-
+find_package(OpenCV 4.2 REQUIRED COMPONENTS imgproc highgui)
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -122,6 +124,7 @@ include_directories(include
   /opt/vc/include
   /opt/vc/include/interface/vcos/pthreads
   /opt/vc/include/interface/vmcs_host/linux
+  ${OpenCV_INCLUDE_DIRS}
 )
 
 add_compile_options(-Wall -Wuseless-cast -Wformat-nonliteral)
@@ -158,6 +161,7 @@ target_link_libraries(raspicam_node
    raspicli
    ${catkin_LIBRARIES}
    ${RPI_LIBRARIES} 
+   ${OpenCV_LIBS}
 )
 
 #############
