@@ -170,16 +170,16 @@ sensor_msgs::CameraInfo right_info;
 std::string camera_frame_id;
 int skip_frames = 0;
 
-bool resize(sensor_msgs::Image& source_msg, 
+bool resize(cv::Mat& source_image, 
                   sensor_msgs::Image& resized_msg, cv::Size size, std::string encoding)
 {
-  // ROS_WARN("Starting resizing ...");
-  cv_bridge::CvImagePtr bridge =  cv_bridge::toCvCopy(source_msg, encoding);
-  cv::resize(bridge->image, bridge->image, size, 0, 0, cv::INTER_LINEAR);
-  // cv::imshow("resized", image);
-  // cv::waitKey(1);
-  resized_msg = *bridge->toImageMsg().get();
-  // ROS_WARN("Resizing finished...");
+  cv::Mat resized_image;
+  cv::resize(source_image, resized_image, size, 0, 0, cv::INTER_LINEAR);
+  cv_bridge::CvImage bridge;
+  bridge.image = resized_image;
+  bridge.header = resized_msg.header;
+  bridge.encoding = resized_msg.encoding;
+  resized_msg = *bridge.toImageMsg().get();
   return true;
 }
 
@@ -224,17 +224,7 @@ int close_cam(RASPIVID_STATE& state) {
 static void configure_parameters(RASPIVID_STATE& state, ros::NodeHandle& nh) {
   nh.param<std::string>("imagefx_mode", state.imagefx_mode, "denoise"); 
   nh.param<std::string>("encoding", state.encoding, "bgr8");
-  if(state.encoding == "mono8")
-     state.encoding = sensor_msgs::image_encodings::MONO8;
-  else if(state.encoding == "bgr8")
-  {
-    state.encoding = sensor_msgs::image_encodings::BGR8;
-  }
-  else
-  {
-    ROS_WARN("Unknown encoding. Set to default");
-    state.encoding = sensor_msgs::image_encodings::BGR8;
-  }
+  
    
   nh.param<int>("width", state.new_width, 1280);
   nh.param<int>("height", state.new_height, 720);
@@ -264,7 +254,19 @@ static void configure_parameters(RASPIVID_STATE& state, ros::NodeHandle& nh) {
   nh.param<bool>("vFlip", temp, false);
   state.camera_parameters.vflip = temp;  // Hack for bool param => int variable
   nh.param<int>("shutter_speed", state.camera_parameters.shutter_speed, 0);
-
+  
+  if(state.encoding == "mono8")
+     state.encoding = sensor_msgs::image_encodings::MONO8;
+    //  state.camera_parameters.colourEffects.enable = 1;
+  else if(state.encoding == "bgr8")
+  {
+    state.encoding = sensor_msgs::image_encodings::BGR8;
+  }
+  else
+  {
+    ROS_WARN("Unknown encoding. Set to default");
+    state.encoding = sensor_msgs::image_encodings::BGR8;
+  }
   state.isInit = false;
 }
 
@@ -276,20 +278,18 @@ static void configure_parameters(RASPIVID_STATE& state, ros::NodeHandle& nh) {
  * @param port Pointer to port from which callback originated
  * @param buffer mmal buffer header pointer
  */
-void update_image(sensor_msgs::Image& msg, MMAL_BUFFER_HEADER_T* buffer, PORT_USERDATA* pData, ros::Time ts)
+void update_image(sensor_msgs::Image& msg, PORT_USERDATA* pData, ros::Time ts)
 {
   msg.header.frame_id = camera_frame_id;
   msg.header.stamp = ts; //(double(buffer->dts)/1e6);
-  msg.encoding = "bgr8";
-// #ifdef _DEBUG
-//   DBG_MSG("//DEBUG// - buffer->dts:")
-//   DBG_MSG( buffer->dts)
-//   DBG_MSG(MMAL_TIME_UNKNOWN)
-// #endif  // _DEBUG
+  msg.encoding = pData->pstate.encoding;
   msg.is_bigendian = false;
-  msg.height = pData->pstate.height/2;
-  msg.width = pData->pstate.width;
-  msg.step = (pData->pstate.width * 3);
+  msg.height = pData->pstate.new_height;
+  msg.width = pData->pstate.new_width;
+  uint8_t channels = 1;
+  if(pData->pstate.encoding == sensor_msgs::image_encodings::BGR8)
+    channels = 3;
+  msg.step = (pData->pstate.width * channels);
 }
 static void splitter_buffer_callback(MMAL_PORT_T* port, MMAL_BUFFER_HEADER_T* buffer) {
   // We pass our file handle and other stuff in via the userdata field.
@@ -331,44 +331,38 @@ static void splitter_buffer_callback(MMAL_PORT_T* port, MMAL_BUFFER_HEADER_T* bu
         } else {
           pData->frames_skipped = 0;
           
-          update_image(left_image.msg, buffer, pData, ts);
-          update_image(right_image.msg, buffer, pData, ts);
+          update_image(left_image.msg, pData, ts);
+          update_image(right_image.msg, pData, ts);
           auto start = pData->buffer[pData->frame & 1].get();
           auto end = &(pData->buffer[pData->frame & 1].get()[pData->id/2]);
           auto start1 = &(pData->buffer[pData->frame & 1].get()[pData->id/2]);
           auto end1 = &(pData->buffer[pData->frame & 1].get()[pData->id]);
-          left_image.msg.data.resize(pData->id/2);
-          #ifdef _DEBUG
-            DBG_MSG("//DEBUG// - Fill in left image!!!")
-          #endif  // _DEBUG
-          std::copy(start1, end1, left_image.msg.data.begin());
-          #ifdef _DEBUG
-            DBG_MSG("//DEBUG// - Success")
-          #endif  // _DEBUG
-          right_image.msg.data.resize(pData->id/2);
-          #ifdef _DEBUG
-            DBG_MSG("//DEBUG// - Fill in right image!!!")
-          #endif  // _DEBUG
-          std::copy(start, end, right_image.msg.data.begin());
-          #ifdef _DEBUG
-            DBG_MSG("//DEBUG// - Success!!!")
-            DBG_MSG("//DEBUG// - Publishing messages!!!")
-            print_image(left_image.msg);
-            print_image(right_image.msg);
-          #endif  // _DEBUG
-            // ROS_WARN("Publishing images starting...");
-            sensor_msgs::Image image_msg;
-            resize(left_image.msg, image_msg, cv::Size(pData->pstate.new_width, pData->pstate.new_height), pData->pstate.encoding);
-            // ROS_WARN("Publishing left image starting...");
-            left_image.msg = image_msg;
-            left_image.pub->publish(left_image.msg);
-            resize(right_image.msg, image_msg, cv::Size(pData->pstate.new_width, pData->pstate.new_height), pData->pstate.encoding);
-            right_image.msg = image_msg;
-            right_image.pub->publish(right_image.msg);
+          int mat_encoding = CV_8UC3;
+          // if(pData->pstate.encoding == sensor_msgs::image_encodings::BGR8)
+          //   mat_encoding = CV_8UC3;
+          cv::Mat left_image_cv(cv::Size(pData->pstate.width, pData->pstate.height/2), mat_encoding );
+          cv::Mat right_image_cv(cv::Size(pData->pstate.width, pData->pstate.height/2), mat_encoding);
+          // left_image.msg.data.resize(pData->id/2);
+          // right_image.msg.data.resize(pData->id/2);
+          // std::copy(start1, end1, left_image.msg.data.begin());
+          std::copy(start, end, left_image_cv.data);
+          std::copy(start1, end1, right_image_cv.data);
+          
+          if(pData->pstate.encoding == sensor_msgs::image_encodings::MONO8)
+          {
+            cv::cvtColor(left_image_cv, left_image_cv, cv::COLOR_BGR2GRAY);
+            cv::cvtColor(right_image_cv, right_image_cv, cv::COLOR_BGR2GRAY);
+          }
+          // cv::imwrite("/home/pi/Documents/left/image.png", left_image_cv);
+          // cv::imwrite("/home/pi/Documents/right/image.png", right_image_cv);
+          // std::copy(start, end, right_image.msg.data.begin());
+          resize(left_image_cv, left_image.msg, cv::Size(pData->pstate.new_width, pData->pstate.new_height), pData->pstate.encoding);
+          resize(right_image_cv, right_image.msg, cv::Size(pData->pstate.new_width, pData->pstate.new_height), pData->pstate.encoding);
+          // ROS_WARN("Publishing left image starting...");
+          left_image.pub->publish(left_image.msg);
+          right_image.pub->publish(right_image.msg);
 
-          #ifdef _DEBUG
-            DBG_MSG("//DEBUG// - Success!!!")
-          #endif  // _DEBUG
+          
           left_info.header = left_image.msg.header;
           right_info.header = left_image.msg.header;
           left_camera_info_pub.publish(left_info);
@@ -674,9 +668,10 @@ static MMAL_STATUS_T create_splitter_component(RASPIVID_STATE& state) {
 
   // Use BGR24 (bgr8 in ROS)
   format = splitter_output_raw->format;
+ 
   format->encoding = MMAL_ENCODING_BGR24;
   format->encoding_variant = 0; /* Irrelevant when not in opaque mode */
-
+  
   status = mmal_port_format_commit(splitter_output_raw);
 
   if (status != MMAL_SUCCESS) {
