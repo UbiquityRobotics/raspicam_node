@@ -2,6 +2,34 @@
 Changelog for package raspicam
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.5.0 (2020-4-08)
+-----------
+* Add a contrast ROS param
+* Adding 1640x1232 yaml and launch, half the natural values
+* change compressed image format to acceptable value
+* Synchronize image and camera info timestamps
+* Add Diagnostics for publishing
+* update diagnostics on frame publish
+* Collect diagnostics information on the publishers
+* Video frame rate denominator is now 1 instead of 3
+* Don't connect video encoder unless imv published
+* Change node handle namespace
+* Update prefixes
+* Change parameter to private_topics
+* Reformat launch files
+* Remove empty string in node handle constructor
+* Implement comments
+* Add support for motion vectors to topic /motion_vector as a byte array, enable with enable_imv parameter
+* Use reinterpret_cast instead of C cast becasue it is more explict
+* Ensure that messages are built before the node
+* fix build error from wrong message name
+* Rename raspicam_view.py to imv_view.py
+* Update README
+* Wrap motion vectors into a custom ROS message MotionVectors
+* raspicam_view: Add a script to display image and motion vectors
+* Rename encoder component to image_encoder, fix misleading comments
+* Contributors: Adam Heinrich, Benjamin Leclerc, Błażej Sowa, Kawin Nikomborirak, Mark Johnston, Rohan Agrawal, mjstn
+
 0.4.0 (2018-11-07)
 ------------------
 * Add support for optionally publishing raw image
