@@ -1,10 +1,10 @@
 <launch>
-  <arg name="camera_id" default="1"/>
+  <arg name="camera_id" default="0"/>
   <arg name="camera_frame_id" default="raspicam"/>
   <arg name="left_camera_name" default="camerav2_1280x720"/>
   <arg name="right_camera_name" default="camerav2_1280x720"/>
 
-  <node type="stereo_node" pkg="raspicam_node" name="stereo_node" output="screen" launch-prefix="nice -n -20">
+  <node type="stereo_node" pkg="raspicam_node" name="stereo_node" output="screen" launch-prefix="">
     <param name="private_topics" value="true"/>
     <param name="imagefx_mode" value="none"/>
     <param name="encoding" value="mono8"/>
@@ -20,8 +20,8 @@
     <!-- <param name="width" value="1280"/>
     <param name="height" value="720"/> -->
     <param name="width" value="640"/>
-    <param name="height" value="360"/>
-    <param name="framerate" value="2"/>
+    <param name="height" value="480"/>
+    <param name="framerate" value="12"/>
   </node>
 </launch>
 <!-- launch-prefix="gdbserver :9091"gdb args -->

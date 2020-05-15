@@ -94,8 +94,8 @@ extern "C" {
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 #include <cv_bridge/cv_bridge.h>
-
-static constexpr int IMG_BUFFER_SIZE = 10 * 1024 * 1024;  // 10 MB
+// 16 193 408*3 = 48 580 224
+static constexpr int IMG_BUFFER_SIZE = 50 * 1024 * 1024;  // 10 MB
 
 // Video format information
 static constexpr int VIDEO_FRAME_RATE_DEN = 1;
@@ -114,8 +114,6 @@ struct RASPIVID_STATE {
   bool isInit;
   int width;      /// Requested width of image
   int height;     /// requested height of image
-  int new_width;
-  int new_height;
   int framerate;  /// Requested frame rate (fps)
   int quality;
   int camera_id = 0;
@@ -170,13 +168,13 @@ sensor_msgs::CameraInfo right_info;
 std::string camera_frame_id;
 int skip_frames = 0;
 
-bool resize(cv::Mat& source_image, 
-                  sensor_msgs::Image& resized_msg, cv::Size size, std::string encoding)
+bool encode(cv::Mat& source_image, 
+                  sensor_msgs::Image& resized_msg, std::string encoding)
 {
-  cv::Mat resized_image;
-  cv::resize(source_image, resized_image, size, 0, 0, cv::INTER_LINEAR);
+  // cv::Mat resized_image;
+  // cv::resize(source_image, resized_image, size, 0, 0, cv::INTER_LINEAR);
   cv_bridge::CvImage bridge;
-  bridge.image = resized_image;
+  bridge.image = source_image;
   bridge.header = resized_msg.header;
   bridge.encoding = resized_msg.encoding;
   resized_msg = *bridge.toImageMsg().get();
@@ -226,10 +224,9 @@ static void configure_parameters(RASPIVID_STATE& state, ros::NodeHandle& nh) {
   nh.param<std::string>("encoding", state.encoding, "bgr8");
   
    
-  nh.param<int>("width", state.new_width, 1280);
-  nh.param<int>("height", state.new_height, 720);
-  state.width = 1280;
-  state.height = 720*2;
+  nh.param<int>("width", state.width, 640);
+  nh.param<int>("height", state.height, 480);
+  state.height*=2;
   nh.param<int>("quality", state.quality, 100);
   if (state.quality < 0 && state.quality > 100) {
     ROS_WARN("quality: %d is outside valid range 0-100, defaulting to 80", state.quality);
@@ -284,8 +281,8 @@ void update_image(sensor_msgs::Image& msg, PORT_USERDATA* pData, ros::Time ts)
   msg.header.stamp = ts; //(double(buffer->dts)/1e6);
   msg.encoding = pData->pstate.encoding;
   msg.is_bigendian = false;
-  msg.height = pData->pstate.new_height;
-  msg.width = pData->pstate.new_width;
+  msg.height = pData->pstate.height;
+  msg.width = pData->pstate.width;
   uint8_t channels = 1;
   if(pData->pstate.encoding == sensor_msgs::image_encodings::BGR8)
     channels = 3;
@@ -337,6 +334,11 @@ static void splitter_buffer_callback(MMAL_PORT_T* port, MMAL_BUFFER_HEADER_T* bu
           auto end = &(pData->buffer[pData->frame & 1].get()[pData->id/2]);
           auto start1 = &(pData->buffer[pData->frame & 1].get()[pData->id/2]);
           auto end1 = &(pData->buffer[pData->frame & 1].get()[pData->id]);
+          if(start == NULL || start1 == NULL || end == NULL || end1 == NULL)
+          {
+            ROS_WARN("Failed to capture image. Empty buffer!");
+            return;
+          }
           int mat_encoding = CV_8UC3;
           // if(pData->pstate.encoding == sensor_msgs::image_encodings::BGR8)
           //   mat_encoding = CV_8UC3;
@@ -356,8 +358,8 @@ static void splitter_buffer_callback(MMAL_PORT_T* port, MMAL_BUFFER_HEADER_T* bu
           // cv::imwrite("/home/pi/Documents/left/image.png", left_image_cv);
           // cv::imwrite("/home/pi/Documents/right/image.png", right_image_cv);
           // std::copy(start, end, right_image.msg.data.begin());
-          resize(left_image_cv, left_image.msg, cv::Size(pData->pstate.new_width, pData->pstate.new_height), pData->pstate.encoding);
-          resize(right_image_cv, right_image.msg, cv::Size(pData->pstate.new_width, pData->pstate.new_height), pData->pstate.encoding);
+          encode(left_image_cv, left_image.msg, pData->pstate.encoding);
+          encode(right_image_cv, right_image.msg, pData->pstate.encoding);
           // ROS_WARN("Publishing left image starting...");
           left_image.pub->publish(left_image.msg);
           right_image.pub->publish(right_image.msg);
@@ -827,7 +829,7 @@ int start_capture(RASPIVID_STATE& state) {
   MMAL_PORT_T* camera_video_port = state.camera_component->output[mmal::camera_port::video];
   MMAL_PORT_T* splitter_output_raw = state.splitter_component->output[1];
   // ROS_INFO("Starting video capture (%d, %d, %d, %d)\n", state.width, state.height/2, state.quality, state.framerate); // FIXME:
-  ROS_INFO("Starting video capture (width: %d, height: %d, quality: %d, framerate: %d)\n", state.new_width, state.new_height, state.quality, state.framerate);
+  ROS_INFO("Starting video capture (width: %d, height: %d, quality: %d, framerate: %d)\n", state.width, state.height/2, state.quality, state.framerate);
   if (mmal_port_parameter_set_boolean(camera_video_port, MMAL_PARAMETER_CAPTURE, 1) != MMAL_SUCCESS) {
     return 1;
   }
@@ -986,7 +988,8 @@ int main(int argc, char** argv) {
   DBG_MSG("//DEBUG// - start_capture!!!")
 #endif  // _DEBUG
   start_capture(state_srv);
-  ros::spin();
+  ros::MultiThreadedSpinner spinner(4); // Use 4 threads
+  spinner.spin(); // spin() will not return until the node has been shutdown
   close_cam(state_srv);
   ros::shutdown();
 }

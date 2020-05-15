@@ -127,7 +127,7 @@ include_directories(include
   ${OpenCV_INCLUDE_DIRS}
 )
 
-add_compile_options(-Wall -Wuseless-cast -Wformat-nonliteral)
+add_compile_options(-Wall -Wuseless-cast -Wformat-nonliteral -Wparentheses)
 
 ## Declare a cpp library
 add_library(raspicli STATIC
