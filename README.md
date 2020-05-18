@@ -35,12 +35,19 @@ rosdep install --from-paths src --ignore-src --rosdistro=kinetic -y
 
 Compile the code with `catkin_make`.
 
-## Running the Node
+## Running the monocamera Node
 Once you have the node built, you can run it using a launch file.
 
 For a V2.x camera, run `roslaunch raspicam_node camerav2_1280x960.launch`
 
 For a V1.x camera, run `roslaunch raspicam_node camerav1_1280x720.launch`
+
+Use `rqt_image_view` on a connected computer to view the published image.
+
+## Running the stereocamera Node
+Once you have the node built, you can run it using a launch file.
+
+For a V2.x camera, run `roslaunch raspicam_node stereo_1280x720.launch`
 
 Use `rqt_image_view` on a connected computer to view the published image.
 
@@ -68,6 +75,7 @@ make sure that the camera cable is properly seated on both ends, and that the ca
 
 ## Node Information
 
+# Raspicam_node
 Topics:
 
 * `~/image/compressed`:
@@ -109,6 +117,50 @@ This parameter is mainly present in order to keep backward compatibility.
 * `~enable_raw` (bool): Publish a raw image (takes more CPU and memory)
 
 * `~enable_imv` (bool): Publish inline motion vectors computed by the GPU
+
+* `~camera_id` (int): The camera id (only supported on Compute Module)
+# Stereo_node
+
+Topics:
+
+* `~/image_left`:
+  Publishes `sensor_msgs/Image` from the camera module. 
+
+* `~/image_right`:
+  Publishes `sensor_msgs/Image` from the camera module. 
+
+* `~/left_camera_info`:
+  Publishes `sensor_msgs/CameraInfo` left camera info for each frame.
+
+* `~/left_camera_info`:
+  Publishes `sensor_msgs/CameraInfo` right camera info for each frame.
+
+Services:
+
+* `~/set_camera_info`: Used to update calibration info for the camera.
+
+Parameters:
+
+* `~private_topics` (bool): By default the topics are private, meaning the node name will be added in front of every topic name.
+If you don't want the topics to be private, you can set this parameter to "true".
+This parameter is mainly present in order to keep backward compatibility.
+
+* `~camera_frame_id` (tf frame): The frame identifier to associate the camera.
+
+* `~left_camera_info_url`: The URL of the camera calibration `.yaml` file for left camera.
+* `~left_camera_info_url`: The URL of the camera calibration `.yaml` file for right camera.
+
+* `~left_camera_name` (string): The name of the left camera, should match with name in camera_info file.
+
+* `~right_camera_name` (string): The name of the right camera, should match with name in camera_info file.
+
+* `~framerate` (fps): Framerate to capture at. Maximum 90fps
+
+* `~height` (pixels): Height to capture images at.
+
+* `~width` (pixels): Width to capture images at.
+
+* `~quality` (0-100): Quality of the captured images.
 
 * `~camera_id` (int): The camera id (only supported on Compute Module)
 

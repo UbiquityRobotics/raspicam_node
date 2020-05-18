@@ -71,9 +71,9 @@ int main(int argc, char** argv) {
 #include "raspicam_node/MotionVectors.h"
 #include <diagnostic_updater/diagnostic_updater.h>
 #include <diagnostic_updater/publisher.h>
-
+extern "C" {
 #include "RaspiCamControl.h"
-
+}
 #include <dynamic_reconfigure/server.h>
 #include <raspicam_node/CameraConfig.h>
 
@@ -141,8 +141,8 @@ typedef struct MMAL_PORT_USERDATA_T {
   RASPIVID_STATE& pstate;                // pointer to our state for use by callback
   bool abort;                            // Set to 1 in callback if an error occurs to attempt to abort
                                          // the capture
-  int frame;
-  int id;
+  size_t frame;
+  size_t id;
 
   int frames_skipped = 0;
 } PORT_USERDATA;
@@ -194,7 +194,7 @@ static void configure_parameters(RASPIVID_STATE& state, ros::NodeHandle& nh) {
   nh.param<int>("camera_id", state.camera_id, 0);
 
   // Set up the camera_parameters to default
-  raspicamcontrol_set_defaults(state.camera_parameters);
+  raspicamcontrol_set_defaults(&state.camera_parameters);
 
   bool temp;
   nh.param<bool>("hFlip", temp, false);
@@ -375,7 +375,7 @@ static void splitter_buffer_callback(MMAL_PORT_T* port, MMAL_BUFFER_HEADER_T* bu
   PORT_USERDATA* pData = port->userdata;
   if (pData && pData->pstate.isInit) {
     size_t bytes_written = buffer->length;
-    if (buffer->length) {
+    if (buffer->length > 0) {
       if (pData->id != INT_MAX) {
         if (pData->id + buffer->length > IMG_BUFFER_SIZE) {
           ROS_ERROR("pData->id (%d) + buffer->length (%d) > "
@@ -416,6 +416,7 @@ static void splitter_buffer_callback(MMAL_PORT_T* port, MMAL_BUFFER_HEADER_T* bu
           image.msg.height = pData->pstate.height;
           image.msg.width = pData->pstate.width;
           image.msg.step = (pData->pstate.width * 3);
+          // ROS_INFO("pData->id = %lu, height = %d, width = %d, size = %lu, frame = %lu\n", pData->id - buffer->offset, pData->pstate.height, pData->pstate.width, pData->pstate.height*pData->pstate.width * 3, pData->frame & 1);
           auto start = pData->buffer[pData->frame & 1].get();
           auto end = &(pData->buffer[pData->frame & 1].get()[pData->id]);
           image.msg.data.resize(pData->id);
@@ -470,6 +471,27 @@ static MMAL_COMPONENT_T* create_camera_component(RASPIVID_STATE& state) {
     goto error;
   }
 
+  // state.camera_parameters.stereo_mode.mode = stereo_mode_from_string("tb");
+  status = static_cast<MMAL_STATUS_T>(raspicamcontrol_set_stereo_mode(camera->output[0], &state.camera_parameters.stereo_mode));
+	if (status != MMAL_SUCCESS)
+	{
+		vcos_log_error("Could not set stereo mode : error %d", status);
+		goto error;
+	}
+  status = static_cast<MMAL_STATUS_T>(raspicamcontrol_set_stereo_mode(camera->output[1], &state.camera_parameters.stereo_mode));
+  
+  if (status != MMAL_SUCCESS)
+	{
+		vcos_log_error("Could not set stereo mode : error %d", status);
+		goto error;
+	}
+  status = static_cast<MMAL_STATUS_T>(raspicamcontrol_set_stereo_mode(camera->output[2], &state.camera_parameters.stereo_mode));
+
+	if (status != MMAL_SUCCESS)
+	{
+		vcos_log_error("Could not set stereo mode : error %d", status);
+		goto error;
+	}
   if (!camera->output_num) {
     vcos_log_error("Camera doesn't have output ports");
     ROS_ERROR("Camera doesn't have output ports");
@@ -607,7 +629,7 @@ static MMAL_COMPONENT_T* create_camera_component(RASPIVID_STATE& state) {
     goto error;
   }
 
-  raspicamcontrol_set_all_parameters(*camera, state.camera_parameters);
+  raspicamcontrol_set_all_parameters(camera, &state.camera_parameters);
 
   state.camera_component.reset(camera);
 
@@ -1286,22 +1308,22 @@ void reconfigure_callback(raspicam_node::CameraConfig& config, uint32_t level, R
     PARAM_FLOAT_RECT_T roi;
     roi.x = roi.y = offset;
     roi.w = roi.h = size;
-    raspicamcontrol_set_ROI(*state.camera_component, roi);
+    raspicamcontrol_set_ROI(state.camera_component.get(), roi);
   }
 
-  raspicamcontrol_set_exposure_mode(*state.camera_component, exposure_mode_from_string(config.exposure_mode.c_str()));
+  raspicamcontrol_set_exposure_mode(state.camera_component.get(), exposure_mode_from_string(config.exposure_mode.c_str()));
 
-  raspicamcontrol_set_awb_mode(*state.camera_component, awb_mode_from_string(config.awb_mode.c_str()));
+  raspicamcontrol_set_awb_mode(state.camera_component.get(), awb_mode_from_string(config.awb_mode.c_str()));
 
-  raspicamcontrol_set_contrast(*state.camera_component, config.contrast);
-  raspicamcontrol_set_sharpness(*state.camera_component, config.sharpness);
-  raspicamcontrol_set_brightness(*state.camera_component, config.brightness);
-  raspicamcontrol_set_saturation(*state.camera_component, config.saturation);
-  raspicamcontrol_set_ISO(*state.camera_component, config.ISO);
-  raspicamcontrol_set_exposure_compensation(*state.camera_component, config.exposure_compensation);
-  raspicamcontrol_set_video_stabilisation(*state.camera_component, config.video_stabilisation);
-  raspicamcontrol_set_flips(*state.camera_component, config.hFlip, config.vFlip);
-  raspicamcontrol_set_shutter_speed(*state.camera_component, config.shutter_speed);
+  raspicamcontrol_set_contrast(state.camera_component.get(), config.contrast);
+  raspicamcontrol_set_sharpness(state.camera_component.get(), config.sharpness);
+  raspicamcontrol_set_brightness(state.camera_component.get(), config.brightness);
+  raspicamcontrol_set_saturation(state.camera_component.get(), config.saturation);
+  raspicamcontrol_set_ISO(state.camera_component.get(), config.ISO);
+  raspicamcontrol_set_exposure_compensation(state.camera_component.get(), config.exposure_compensation);
+  raspicamcontrol_set_video_stabilisation(state.camera_component.get(), config.video_stabilisation);
+  raspicamcontrol_set_flips(state.camera_component.get(), config.hFlip, config.vFlip);
+  raspicamcontrol_set_shutter_speed(state.camera_component.get(), config.shutter_speed);
 
   ROS_DEBUG("Reconfigure done");
 }

@@ -4,6 +4,12 @@ project(raspicam_node)
 
 set(CMAKE_CXX_STANDARD 14) # use C++14
 
+# Enable compile optimizations
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -fsee -fomit-frame-pointer -fno-signed-zeros -fno-math-errno -funroll-loops")
+set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=armv8-a+crc -mtune=cortex-a53 -mfpu=crypto-neon-fp-armv8 -mfloat-abi=hard -ftree-vectorize -funsafe-math-optimizations -O3 -pipe")
+
+# add_definitions(-D_DEBUG)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
@@ -15,8 +21,9 @@ find_package(catkin REQUIRED COMPONENTS
   dynamic_reconfigure
   diagnostic_updater
   message_generation
+  cv_bridge
 )
-
+find_package(OpenCV 4.2 REQUIRED COMPONENTS imgproc highgui)
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -43,7 +50,7 @@ if(${CMAKE_SYSTEM_PROCESSOR} MATCHES arm*)
   IF( (NOT vchostif_LIBS ))
       MESSAGE(FATAL_ERROR "Could not find vchostif library")
   ENDIF()
-
+  
   set(RPI_LIBRARIES ${RPI_LIBRARIES} 
   ${bcmhost_LIBS}
   ${vcos_LIBS} 
@@ -117,21 +124,44 @@ include_directories(include
   /opt/vc/include
   /opt/vc/include/interface/vcos/pthreads
   /opt/vc/include/interface/vmcs_host/linux
+  ${OpenCV_INCLUDE_DIRS}
 )
 
-add_compile_options(-Wall -Wuseless-cast -Wformat-nonliteral)
+add_compile_options(-Wall -Wuseless-cast -Wformat-nonliteral -Wparentheses)
 
-## Declare a cpp executable
-add_executable(raspicam_node src/raspicam_node.cpp src/RaspiCamControl.cpp)
+## Declare a cpp library
+add_library(raspicli STATIC
+  src/RaspiCLI.c 
+)
+
+add_library(raspicamcontrol STATIC
+  src/RaspiCamControl.c
+)
+
+## Declare a cpp executables
+add_executable(raspicam_node src/raspicam_node.cpp)
+add_executable(stereo_node src/stereo_node.cpp)
+
 
 ## Add cmake target dependencies of the executable/library
 add_dependencies(raspicam_node raspicam_node_generate_messages_cpp)
 add_dependencies(raspicam_node raspicam_node_gencfg)
+add_dependencies(stereo_node raspicam_node_generate_messages_cpp)
+add_dependencies(stereo_node raspicam_node_gencfg)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(raspicam_node
+  raspicamcontrol
+  raspicli
   ${catkin_LIBRARIES}
   ${RPI_LIBRARIES} 
+)
+ target_link_libraries(stereo_node
+   raspicamcontrol
+   raspicli
+   ${catkin_LIBRARIES}
+   ${RPI_LIBRARIES} 
+   ${OpenCV_LIBS}
 )
 
 #############
@@ -149,7 +179,7 @@ target_link_libraries(raspicam_node
 # )
 
 ## Mark executables and/or libraries for installation
-install(TARGETS raspicam_node
+install(TARGETS raspicam_node 
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}

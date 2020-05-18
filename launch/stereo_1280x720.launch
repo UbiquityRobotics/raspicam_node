@@ -1,0 +1,29 @@
+<launch>
+  <arg name="camera_id" default="0"/>
+  <arg name="camera_frame_id" default="raspicam"/>
+  <arg name="left_camera_name" default="left_camera_optical_frame"/>
+  <arg name="right_camera_name" default="right_camera_optical_frame"/>
+
+  <node type="stereo_node" pkg="raspicam_node" name="stereo_node" output="screen" launch-prefix="">
+    <param name="private_topics" value="true"/>
+    <param name="imagefx_mode" value="none"/>
+    <param name="encoding" value="mono8"/>
+    <param name="sensor_mode" value="7"/>
+    <!-- "none", "negative", "sketch", "sketch", "emboss", "gpen", 
+    "watercolour", "film", "blur", "saturation", "washedout", "posterise", "colourpoint", "colourbalance", "cartoon"  -->
+    <param name="camera_frame_id" value="$(arg camera_frame_id)"/>
+    <param name="camera_id" value="$(arg camera_id)"/>
+
+    <param name="left_camera_info_url" value="file://$(find raspicam_node)/camera_info/left/left.yaml"/>
+    <param name="right_camera_info_url" value="file://$(find raspicam_node)/camera_info/right/right.yaml"/>
+    <param name="left_camera_name" value="$(arg left_camera_name)"/>
+    <param name="right_camera_name" value="$(arg right_camera_name)"/>
+    <!-- <param name="width" value="1280"/>
+    <param name="height" value="720"/> -->
+    <param name="width" value="640"/>
+    <param name="height" value="480"/>
+    <param name="framerate" value="10"/>
+  </node>
+</launch>
+<!-- launch-prefix="gdbserver :9091"gdb args -->
+<!--  -->
