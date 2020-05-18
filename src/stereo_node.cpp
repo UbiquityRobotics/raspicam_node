@@ -166,6 +166,7 @@ ros::Publisher right_camera_info_pub;
 sensor_msgs::CameraInfo left_info;
 sensor_msgs::CameraInfo right_info;
 std::string camera_frame_id;
+std::string left_camera_name, right_camera_name;
 int skip_frames = 0;
 
 bool encode(cv::Mat& source_image, 
@@ -238,7 +239,7 @@ static void configure_parameters(RASPIVID_STATE& state, ros::NodeHandle& nh) {
     state.framerate = 30;
   }
 
-  nh.param<std::string>("camera_frame_id", camera_frame_id, "stereo");
+  // nh.param<std::string>("camera_frame_id", camera_frame_id, "stereo");
 
   nh.param<int>("camera_id", state.camera_id, 0);
 
@@ -275,9 +276,9 @@ static void configure_parameters(RASPIVID_STATE& state, ros::NodeHandle& nh) {
  * @param port Pointer to port from which callback originated
  * @param buffer mmal buffer header pointer
  */
-void update_image(sensor_msgs::Image& msg, PORT_USERDATA* pData, ros::Time ts)
+void update_image(sensor_msgs::Image& msg, PORT_USERDATA* pData, ros::Time ts, const std::string& frame_name)
 {
-  msg.header.frame_id = camera_frame_id;
+  msg.header.frame_id = frame_name;
   msg.header.stamp = ts; //(double(buffer->dts)/1e6);
   msg.encoding = pData->pstate.encoding;
   msg.is_bigendian = false;
@@ -328,8 +329,8 @@ static void splitter_buffer_callback(MMAL_PORT_T* port, MMAL_BUFFER_HEADER_T* bu
         } else {
           pData->frames_skipped = 0;
           
-          update_image(left_image.msg, pData, ts);
-          update_image(right_image.msg, pData, ts);
+          update_image(left_image.msg, pData, ts, left_camera_name);
+          update_image(right_image.msg, pData, ts, right_camera_name);
           auto start = pData->buffer[pData->frame & 1].get();
           auto end = &(pData->buffer[pData->frame & 1].get()[pData->id/2]);
           auto start1 = &(pData->buffer[pData->frame & 1].get()[pData->id/2]);
@@ -911,7 +912,7 @@ int main(int argc, char** argv) {
   nh_params.param("skip_frames", skip_frames, 0);
 
   std::string left_camera_info_url, right_camera_info_url;
-  std::string left_camera_name, right_camera_name;
+  
 
   nh_params.param("left_camera_info_url", left_camera_info_url, std::string("package://raspicam_node/camera_info/left_camera.yaml"));
   nh_params.param("right_camera_info_url", right_camera_info_url, std::string("package://raspicam_node/camera_info/right_camera.yaml"));  
@@ -919,7 +920,7 @@ int main(int argc, char** argv) {
   nh_params.param("right_camera_name", right_camera_name, std::string("right_camera"));
 
   camera_info_manager::CameraInfoManager left_info_man(nh_params, left_camera_name, left_camera_info_url);
-    // camera_info_manager::CameraInfoManager right_info_man(nh_params, right_camera_name, right_camera_info_url);
+  camera_info_manager::CameraInfoManager right_info_man(nh_params, right_camera_name, right_camera_info_url);
 
   RASPIVID_STATE state_srv;
 #ifdef _DEBUG
@@ -944,10 +945,10 @@ int main(int argc, char** argv) {
 #ifdef _DEBUG
   DBG_MSG("//DEBUG// - Load right camera calibration!!!")
 #endif  // _DEBUG
-  if (!left_info_man.loadCameraInfo(right_camera_info_url)) {
+  if (!right_info_man.loadCameraInfo(right_camera_info_url)) {
     ROS_INFO("Calibration file missing. Right camera not calibrated");
   } else {
-    right_info = left_info_man.getCameraInfo();
+    right_info = right_info_man.getCameraInfo();
     ROS_INFO("Camera successfully calibrated from config file");
   }
 
@@ -963,10 +964,10 @@ int main(int argc, char** argv) {
 #ifdef _DEBUG
   DBG_MSG("//DEBUG// - Advertizing!!!")
 #endif  // _DEBUG
-  auto left_image_pub = nh_topics.advertise<sensor_msgs::Image>("left_image", 2);
+  auto left_image_pub = nh_topics.advertise<sensor_msgs::Image>("left/image_raw", 2);
   left_image.pub.reset(new DiagnosedPublisher<sensor_msgs::Image>(
       left_image_pub, state_srv.updater, FrequencyStatusParam(&min_freq, &max_freq, 0.1, 10), TimeStampStatusParam(0, 0.2)));  // if (state_srv.enable_imv_pub) {
-  auto right_image_pub = nh_topics.advertise<sensor_msgs::Image>("right_image", 2);
+  auto right_image_pub = nh_topics.advertise<sensor_msgs::Image>("right/image_raw", 2);
   right_image.pub.reset(new DiagnosedPublisher<sensor_msgs::Image>(
       right_image_pub, state_srv.updater, FrequencyStatusParam(&min_freq, &max_freq, 0.1, 10), TimeStampStatusParam(0, 0.2)));
   if(left_image.pub == nullptr || right_image.pub == nullptr)
@@ -974,8 +975,8 @@ int main(int argc, char** argv) {
     ROS_INFO("Publisher is corrupted");
     return 0;
   }
-  left_camera_info_pub = nh_topics.advertise<sensor_msgs::CameraInfo>("left_camera_info", 2);
-  right_camera_info_pub = nh_topics.advertise<sensor_msgs::CameraInfo>("right_camera_info", 2);
+  left_camera_info_pub = nh_topics.advertise<sensor_msgs::CameraInfo>("left/camera_info", 2);
+  right_camera_info_pub = nh_topics.advertise<sensor_msgs::CameraInfo>("right/camera_info", 2);
 
   dynamic_reconfigure::Server<raspicam_node::CameraConfig> server;
   dynamic_reconfigure::Server<raspicam_node::CameraConfig>::CallbackType f;
