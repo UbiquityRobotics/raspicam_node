@@ -26,7 +26,7 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifdef __arm__
+#if defined(__arm__) || defined(__aarch64__)
 
 #include <memory.h>
 #include <stdio.h>
@@ -919,4 +919,4 @@ void raspicamcontrol_check_configuration(int min_gpu_mem) {
     vcos_log_error("Failed to run camera app. Please check for firmware updates\n");
 }
 
-#endif  // __arm__
+#endif  // __arm__ || __aarch64__

@@ -3,6 +3,7 @@ project(raspicam_node)
 
 
 set(CMAKE_CXX_STANDARD 14) # use C++14
+set(CMAKE_EXE_LINKER_FLAGS "-Wl,--no-as-needed")  # https://github.com/raspberrypi/userland/issues/178
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)

@@ -37,7 +37,7 @@ int main(int argc, char** argv) {
 
 #endif  // __x86_64__
 
-#ifdef __arm__
+#if defined(__arm__) || defined(__aarch64__)
 
 // We use some GNU extensions (basename)
 #include <memory.h>
@@ -1380,4 +1380,4 @@ int main(int argc, char** argv) {
   ros::shutdown();
 }
 
-#endif  // __arm__
+#endif  // __arm__ || __aarch64__
