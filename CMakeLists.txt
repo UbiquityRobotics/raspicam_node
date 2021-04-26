@@ -9,7 +9,6 @@ set(CMAKE_EXE_LINKER_FLAGS "-Wl,--no-as-needed")  # https://github.com/raspberry
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  compressed_image_transport
   roscpp
   std_msgs
   camera_info_manager
@@ -102,7 +101,7 @@ generate_dynamic_reconfigure_options(
 catkin_package(
    INCLUDE_DIRS include
 #  LIBRARIES raspicam
-#  CATKIN_DEPENDS compressed_image_transport roscpp std_msgs
+#  CATKIN_DEPENDS roscpp std_msgs
 #  DEPENDS system_lib
    CATKIN_DEPENDS message_runtime std_msgs
 )
