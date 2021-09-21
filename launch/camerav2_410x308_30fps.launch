@@ -4,10 +4,15 @@
   <arg name="camera_id" default="0"/>
   <arg name="camera_frame_id" default="raspicam"/>
   <arg name="camera_name" default="camerav2_410x308"/>
+  <arg name="vFlip" default="false"/>
+  <arg name="hFlip" default="false"/>
+
 
   <node type="raspicam_node" pkg="raspicam_node" name="raspicam_node" output="screen">
     <param name="private_topics" value="true"/>
 
+    <param name="vFlip" value="$(arg vFlip)"/>
+    <param name="hFlip" value="$(arg hFlip)"/>
     <param name="camera_frame_id" value="$(arg camera_frame_id)"/>
     <param name="enable_raw" value="$(arg enable_raw)"/>
     <param name="enable_imv" value="$(arg enable_imv)"/>
