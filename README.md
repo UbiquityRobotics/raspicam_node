@@ -167,3 +167,23 @@ Finally, run script `imv_view.py` to visualize the motion vectors:
 ```
 rosrun raspicam_node imv_view.py
 ```
+***Note***
+
+This node has been demonstrated to run on the Rasperry Pi 4 when compiled for both ARM32 and ARM64 Noetic under Ubuntu 20.04. 
+Because of mmal specifictions and conflicts between ARM32 and ARM64 it is uncertain if motion vectors are working correctly under noetic.
+
+To install after ros-noetic-desktop(full)
+
+sudo apt install libraspberrypi-bin libraspberrypi-dev
+
+test by raspistill -o test.jpg
+
+make sure config.txt has start_x=1 and gpu_mem=128 specified
+
+build the node from github 
+
+test by 
+
+roslaunch raspicam_node camerav2_410x308_30fps.launch 
+
+and  rosrun rqt_image_view rqt_image_view
