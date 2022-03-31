@@ -6,12 +6,12 @@ ROS node for the Raspberry Pi Camera Module. Works with both the V1.x and V2.x v
 
 A binary can be found at https://packages.ubiquityrobotics.com/ follow the instructions there to add the repository.
 
-Then run `sudo apt install ros-kinetic-raspicam-node`
+Then run `sudo apt install ros-$ROS_DISTRO-raspicam-node`
 
-## Build Intructions
+## Build Instructions
 If you want to build from source instead of using the binary follow this section.
 
-This node is primarily supported on ROS Kinetic, and Ubuntu 16.04, and that is what these instuctions presume.
+This node is primarily supported on ROS Noetic, and Ubuntu 20.04, and that is what these instructions presume.
 
 Go to your catkin_ws `cd ~/catkin_ws/src`.
 
@@ -30,7 +30,7 @@ Install the ros dependencies,
 
 ```
 cd ~/catkin_ws
-rosdep install --from-paths src --ignore-src --rosdistro=kinetic -y
+rosdep install --from-paths src --ignore-src --rosdistro=$ROS_DISTRO -y
 ```
 
 Compile the code with `catkin_make`.
@@ -53,7 +53,7 @@ Run the dynamic reconfigure node on a connected computer:
 rosrun rqt_reconfigure rqt_reconfigure
 ```
 
-It should bring up a user interface like the one below.  Paramaters can be dynamically adjusted via this interface.
+It should bring up a user interface like the one below. Parameters can be dynamically adjusted via this interface.
 
 ![rqt_reconfigure](reconfigure_raspicam_node.png)
 
